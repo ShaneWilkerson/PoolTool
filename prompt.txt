@@ -1,0 +1,99 @@
+I’m building a mobile app called **PoolTracker** using **React Native with Expo**. I’m a beginner computer science student and want the code to be simple, well-commented, and easy to understand as I learn.
+
+---
+
+### 🔧 Tech Stack (Use Only These):
+
+- **Language:** JavaScript (ES6+)
+- **Framework:** React Native (via Expo)
+- **Navigation:** React Navigation (bottom tabs)
+- **Backend:** Firebase (Firestore + Firebase Auth)
+- **Maps:** react-native-maps (Google Maps)
+- **Charts:** Victory Native (for future chemical tracking graphs)
+- **UI components:** React Native built-ins (or simple, lightweight libraries only)
+- **Project structure:** Use `/screens`, `/components`, `/firebase`, etc.
+
+---
+
+### 🎨 App Style & Theme:
+
+Use a clean, modern design with a “pool tech” vibe:
+- Background: white or very light gray
+- Primary accent color: pool blue (`#00BFFF`)
+- Text: dark navy or black
+- Reminder/highlight color: soft yellow or orange
+- Use safe areas, spacing, and padding for a mobile-friendly layout
+- Rounded corners on cards and buttons
+
+---
+
+### 📱 App Structure and Screens:
+
+#### 1. **Home Screen**
+- A nice and modern layout with today’s date at the top
+- Card-style list of today’s tasks (e.g., “Account 6 - Add chlorine”)
+- Weekly reminders section (e.g., “Filter cleaning for Account 3 on Friday”)
+
+#### 2. **Current Pool Screen**
+- Display the next pool on the schedule
+- Include a manual search option to pull up a specific pool by name
+- Add a placeholder message: “Photo test strip analysis coming soon”
+
+#### 3. **Chemical Tracker Screen**
+- Manually log chemicals added to a pool (chemical, amount, date)
+- Show entries in a clean list with timestamps
+- Placeholder section for a future chart (Victory)
+- Fields for pool volume and chemical strength (no logic yet)
+- Clearly label the chart section as “WIP – Automation coming soon”
+
+#### 4. **Map/Route Screen**
+- Use `react-native-maps` to show:
+  - Gray pins = all pools
+  - Blue pins = today's pools
+  - Yellow/orange pins = pools with “to-do” tasks
+  - Teal pins = mock Leslie’s Pool Supply store locations
+- Use sample coordinates for now
+
+#### 5. **Schedule Screen**
+- Weekly calendar view of upcoming pool appointments
+- Easy-to-read layout, possibly card style per day
+
+#### 6. **Billing Screen**
+- List of accounts showing paid/unpaid status (green check / red X)
+- Show mock total expenses per account
+- Tabs or sections for “Receipts” and “Expenses”
+
+---
+
+### 🧭 Navigation
+- Set up a bottom tab bar like Instagram or Twitter, with icons and labels for these screens:
+Home, Current Pool, Map, Schedule, and Billing.
+The tab bar should stay fixed at the bottom and let users switch between screens easily.
+Use @react-navigation/bottom-tabs and react-native-vector-icons to style the icons and labels.
+
+---
+
+### 🔐 Firebase Setup
+- Use my existing `firebase.js` file in the project root
+- Set up Firebase Auth (email + password login/register)
+- Set up Firestore
+- Store and retrieve to-do list items and pool info
+- Use mock data unless otherwise specified
+
+---
+
+### 🧼 Code & Structure
+- Organize code into `/screens`, `/components`, and `/firebase`
+- Keep code clean, commented, and beginner-friendly
+- Use mock/dummy data for now to simulate tasks and accounts
+- Label any future or incomplete features clearly
+
+---
+
+### ❌ Do NOT Build Yet:
+- Do not build the test strip photo analyzer or smart chemical suggestions yet
+- Just leave placeholders and comments labeled: "Coming soon"
+
+---
+
+Once this setup is complete, help me build and test one screen or feature at a time.
