@@ -126,7 +126,9 @@ const CustomerDetailScreen = ({ navigation, route }) => {
             <View style={styles.infoRow}>
               <Ionicons name="location" size={20} color="#666" />
               <Text style={styles.infoLabel}>Address:</Text>
-              <Text style={styles.infoValue}>{customer.address}</Text>
+              <Text style={styles.infoValue}>
+                {customer.fullAddress || customer.address || [customer.street, customer.city, customer.state, customer.zip].filter(Boolean).join(', ')}
+              </Text>
             </View>
           </View>
         </View>

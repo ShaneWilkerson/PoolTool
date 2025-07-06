@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -28,6 +29,7 @@ import CustomerListScreen from './screens/CustomerListScreen';
 import CustomerDetailScreen from './screens/CustomerDetailScreen';
 import CreatePoolVisitScreen from './screens/CreatePoolVisitScreen';
 import AddToDoScreen from './screens/AddToDoScreen';
+import AccountBillingScreen from './screens/AccountBillingScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -176,6 +178,17 @@ const RootNavigator = () => {
         component={AddToDoScreen}
         options={{
           title: 'Add To-do Item',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="AccountBilling" 
+        component={AccountBillingScreen}
+        options={{
+          title: 'Account Billing',
           headerStyle: { backgroundColor: '#00BFFF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },

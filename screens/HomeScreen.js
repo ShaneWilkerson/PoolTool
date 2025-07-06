@@ -17,6 +17,9 @@ const HomeScreen = ({ navigation }) => {
   const [poolVisits, setPoolVisits] = useState([]);
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddStore, setShowAddStore] = useState(false);
+  const [completedToday, setCompletedToday] = useState(0);
+  const [todosThisWeek, setTodosThisWeek] = useState(0);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -63,6 +66,45 @@ const HomeScreen = ({ navigation }) => {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const q = query(
+      collection(db, 'poolVisits'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('scheduledDate', '>=', today),
+      where('scheduledDate', '<', tomorrow),
+      where('completed', '==', true)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setCompletedToday(snapshot.size);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    endOfWeek.setHours(23, 59, 59, 999);
+    const q = query(
+      collection(db, 'todos'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('dueDate', '>=', startOfWeek),
+      where('dueDate', '<', endOfWeek),
+      where('status', '==', 'pending')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTodosThisWeek(snapshot.size);
+    });
+    return unsubscribe;
+  }, []);
+
   const getCustomerName = (customerId) => {
     const customer = customers.find(c => c.id === customerId);
     return customer ? customer.name : 'Unknown Customer';
@@ -95,26 +137,44 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Customer Action Buttons */}
-        <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 16 }}>
-          <TouchableOpacity style={[styles.actionButton, { flex: 1 }]} onPress={() => navigation.navigate('AddCustomer')}>
-            <Ionicons name="person-add" size={20} color="#00BFFF" />
-            <Text style={styles.actionButtonText}>Add Customer</Text>
+        <View style={{ marginTop: 32, marginBottom: 24 }}>
+          {/* Create Pool Visit (wide) */}
+          <TouchableOpacity style={[styles.menuButton, styles.menuButtonWide]} onPress={() => navigation.navigate('CreatePoolVisit')}>
+            <View style={styles.menuButtonContent}>
+              <Ionicons name="water" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.menuButtonText}>Create Pool Visit</Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { flex: 1 }]} onPress={() => navigation.navigate('CustomerList')}>
-            <Ionicons name="people" size={20} color="#00BFFF" />
-            <Text style={styles.actionButtonText}>View Customers</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 8 }}>
-          <TouchableOpacity style={[styles.actionButton, { flex: 1 }]} onPress={() => navigation.navigate('CreatePoolVisit')}>
-            <Ionicons name="water" size={20} color="#00BFFF" />
-            <Text style={styles.actionButtonText}>Create Pool Visit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, { flex: 1 }]} onPress={() => navigation.navigate('AddToDo')}>
-            <Ionicons name="add-circle" size={20} color="#00BFFF" />
-            <Text style={styles.actionButtonText}>Add to To-do List</Text>
-          </TouchableOpacity>
+          {/* Row: Add to To-do List & View Customers */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('AddToDo')}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="add-circle" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>Add to To-do List</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginLeft: 8 }]} onPress={() => navigation.navigate('CustomerList')}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="people" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>View Customers</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          {/* Row: Add Supply Store & Add Customer */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => setShowAddStore(true)}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="storefront" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>Add Supply Store</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginLeft: 8 }]} onPress={() => navigation.navigate('AddCustomer')}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="person-add" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>Add Customer</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Header with today's date */}
@@ -289,12 +349,12 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <View style={styles.statCard}>
             <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{completedToday}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="time" size={32} color="#FFA500" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{todosThisWeek}</Text>
             <Text style={styles.statLabel}>To-Do</Text>
           </View>
         </View>
@@ -500,6 +560,14 @@ const styles = StyleSheet.create({
   arrowButton: {
     marginHorizontal: 2,
     padding: 4,
+  },
+  menuButton: { backgroundColor: '#e3f6ff', borderRadius: 12, borderWidth: 2, borderColor: '#00BFFF', paddingVertical: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  menuButtonWide: { width: '100%', marginBottom: 16 },
+  menuButtonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  menuButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#00BFFF',
   },
 });
 

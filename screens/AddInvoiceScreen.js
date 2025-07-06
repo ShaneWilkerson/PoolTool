@@ -1,21 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
 import { addInvoice, getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
 
 const AddInvoiceScreen = ({ navigation }) => {
   const [customerId, setCustomerId] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   const [services, setServices] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const inputRef = useRef(null);
+  const [dropdownTop, setDropdownTop] = useState(0);
+  const [dropdownLeft, setDropdownLeft] = useState(0);
+  const [dropdownWidth, setDropdownWidth] = useState(0);
 
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
         const data = await getCustomersForAccount(auth.currentUser.uid);
         setCustomers(data);
+        setFilteredCustomers(data);
       } catch (error) {
         console.error('Error fetching customers:', error);
         Alert.alert('Error', 'Failed to load customers');
@@ -24,15 +33,27 @@ const AddInvoiceScreen = ({ navigation }) => {
     fetchCustomers();
   }, []);
 
+  useEffect(() => {
+    if (customerSearch.trim() === '') {
+      setFilteredCustomers(customers);
+    } else {
+      const filtered = customers.filter(customer =>
+        customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        customer.email.toLowerCase().includes(customerSearch.toLowerCase())
+      );
+      setFilteredCustomers(filtered.slice(0, 5));
+    }
+  }, [customerSearch, customers]);
+
   const handleAddInvoice = async () => {
-    if (!customerId || !services || !amount || !dueDate) {
+    if (!selectedCustomer || !services || !amount || !dueDate) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
     setLoading(true);
     try {
       await addInvoice({
-        customerId,
+        customerId: selectedCustomer.id,
         services: services.split(',').map(s => s.trim()),
         amount: parseFloat(amount),
         dueDate: new Date(dueDate),
@@ -51,24 +72,66 @@ const AddInvoiceScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>New Invoice</Text>
           <Text style={styles.label}>Customer</Text>
-          <View style={styles.dropdown}>
+          <View style={{ position: 'relative' }}>
             <TextInput
+              ref={inputRef}
               style={styles.input}
-              placeholder="Customer ID"
-              value={customerId}
-              onChangeText={setCustomerId}
-              list="customer-list"
+              placeholder="Search for customer..."
+              value={selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.email})` : customerSearch}
+              onChangeText={text => {
+                setCustomerSearch(text);
+                setSelectedCustomer(null);
+                setShowDropdown(true);
+              }}
+              onFocus={() => {
+                setShowDropdown(true);
+                setTimeout(() => {
+                  inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                    setDropdownTop(y + height);
+                    setDropdownLeft(x);
+                    setDropdownWidth(width);
+                  });
+                }, 100);
+              }}
+              autoCapitalize="none"
             />
-            {/* Optionally, you can use a Picker or dropdown here */}
-            {/* For now, just show a list below */}
-            {customers.map(c => (
-              <TouchableOpacity key={c.id} onPress={() => setCustomerId(c.id)}>
-                <Text style={styles.customerOption}>{c.name} ({c.email})</Text>
-              </TouchableOpacity>
-            ))}
+            {showDropdown && filteredCustomers.length > 0 && !selectedCustomer && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 56, // height of input + margin
+                  left: 0,
+                  width: '100%',
+                  backgroundColor: 'white',
+                  borderRadius: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
+                  elevation: 10,
+                  zIndex: 9999,
+                  paddingVertical: 4,
+                }}
+              >
+                {filteredCustomers.map((customer) => (
+                  <TouchableOpacity
+                    key={customer.id}
+                    style={styles.suggestionItem}
+                    onPress={() => {
+                      setSelectedCustomer(customer);
+                      setCustomerSearch(`${customer.name} (${customer.email})`);
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.customerName}>{customer.name}</Text>
+                    <Text style={styles.customerEmail}>{customer.email}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
           <TextInput style={styles.input} placeholder="Services (comma separated)" value={services} onChangeText={setServices} />
           <TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
@@ -94,6 +157,30 @@ const styles = StyleSheet.create({
   buttonDisabled: { backgroundColor: '#ccc' },
   buttonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   customerOption: { padding: 8, backgroundColor: '#e3f2fd', borderRadius: 8, marginBottom: 4 },
+  suggestionDropdown: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e1e5e9',
+    zIndex: 1000,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  suggestionItem: {
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e5e9',
+  },
+  customerName: { fontSize: 16, fontWeight: '600' },
+  customerEmail: { fontSize: 14, color: '#666' },
 });
 
 export default AddInvoiceScreen; 

@@ -56,6 +56,9 @@ const CustomerListScreen = ({ navigation }) => {
           <View style={styles.customerInfo}>
             <Text style={styles.customerName}>{item.name}</Text>
             <Text style={styles.customerId}>ID: {item.id}</Text>
+            <Text style={{ color: '#666', fontSize: 13, marginTop: 2 }}>
+              {item.street || item.address || ''}
+            </Text>
           </View>
           <View style={styles.customerActions}>
             <TouchableOpacity 
@@ -88,7 +91,7 @@ const CustomerListScreen = ({ navigation }) => {
             <View style={styles.detailRow}>
               <Ionicons name="location" size={16} color="#666" />
               <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>{item.address}</Text>
+              <Text style={styles.detailValue}>{item.street || item.address || ''}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="card" size={16} color="#666" />

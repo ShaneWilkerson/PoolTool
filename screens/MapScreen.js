@@ -6,52 +6,53 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
+import * as Location from 'expo-location';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 const MapScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [region, setRegion] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [zoom, setZoom] = useState(12);
+  const [showAllPools, setShowAllPools] = useState(false);
 
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const data = await getCustomersForAccount(auth.currentUser.uid);
-        setCustomers(data);
-      } catch (error) {
-        console.error('Error fetching customers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCustomers();
+    const q = query(
+      collection(auth, 'customers'),
+      where('accountId', '==', auth.currentUser.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  // Mock data for Leslie's Pool Supply locations - teal pins
-  const lesliesLocations = [
-    {
-      id: 'leslies1',
-      name: "Leslie's Pool Supply",
-      coordinate: { latitude: 37.7749, longitude: -122.4094 },
-      address: '100 Pool St, San Francisco, CA',
-    },
-    {
-      id: 'leslies2',
-      name: "Leslie's Pool Supply",
-      coordinate: { latitude: 37.7849, longitude: -122.4194 },
-      address: '200 Water Ave, San Francisco, CA',
-    },
-    {
-      id: 'leslies3',
-      name: "Leslie's Pool Supply",
-      coordinate: { latitude: 37.7649, longitude: -122.3994 },
-      address: '300 Chemical Blvd, San Francisco, CA',
-    },
-  ];
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permission is required to show your position on the map.');
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({});
+      setUserLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      });
+    })();
+  }, []);
 
   const getPinColor = (status) => {
     switch (status) {
@@ -71,13 +72,6 @@ const MapScreen = () => {
       return customers;
     }
     return customers.filter(pool => pool.status === selectedFilter);
-  };
-
-  const getFilteredLeslies = () => {
-    if (selectedFilter === 'all' || selectedFilter === 'leslies') {
-      return lesliesLocations;
-    }
-    return [];
   };
 
   const initialRegion = {
@@ -184,26 +178,43 @@ const MapScreen = () => {
 
       {/* Map */}
       <View style={styles.mapContainer}>
-        <MapView style={styles.map} initialRegion={initialRegion}>
-          {/* Customer Pools */}
+        <MapView
+          style={{ flex: 1 }}
+          region={region}
+          onRegionChangeComplete={setRegion}
+        >
+          {/* User location marker */}
+          {userLocation && (
+            <Marker coordinate={userLocation} pinColor="#00BFFF" title="You are here" />
+          )}
+          {/* Today's pool visits (turquoise) */}
           {getFilteredPools().map((pool) => (
             <Marker
               key={pool.id}
               coordinate={{ latitude: 37.7749, longitude: -122.4194 }} // Default coordinates
+              pinColor={getPinColor(pool.status || 'all')}
               title={pool.name}
               description={pool.address}
-              pinColor={getPinColor(pool.status || 'all')}
             />
           ))}
-
-          {/* Leslie's Locations */}
-          {getFilteredLeslies().map((location) => (
+          {/* This week's to-dos (orange) */}
+          {/* weeksTodos.map(todo => (
             <Marker
-              key={location.id}
-              coordinate={location.coordinate}
-              title={location.name}
-              description={location.address}
-              pinColor={getPinColor('leslies')}
+              key={todo.id}
+              coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
+              pinColor="#ff9100"
+              title={todo.customerName}
+              description="To-Do This Week"
+            />
+          )) */}
+          {/* All pools (optional, toggle) */}
+          {showAllPools && customers.filter(c => c.latitude && c.longitude).map(pool => (
+            <Marker
+              key={pool.id}
+              coordinate={{ latitude: pool.latitude, longitude: pool.longitude }}
+              pinColor="#00BFFF"
+              title={pool.name}
+              description={`${pool.street}, ${pool.city}, ${pool.state} ${pool.zip}`}
             />
           ))}
         </MapView>
@@ -218,6 +229,23 @@ const MapScreen = () => {
             </View>
           </View>
         )}
+
+        {/* Zoom in/out buttons */}
+        <View style={{ position: 'absolute', bottom: 24, right: 16, flexDirection: 'column' }}>
+          <TouchableOpacity style={{ backgroundColor: '#fff', borderRadius: 24, padding: 8, marginBottom: 8, elevation: 4 }} onPress={() => setZoom(z => Math.min(z + 1, 20))}>
+            <Ionicons name="add" size={24} color="#00BFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={{ backgroundColor: '#fff', borderRadius: 24, padding: 8, elevation: 4 }} onPress={() => setZoom(z => Math.max(z - 1, 2))}>
+            <Ionicons name="remove" size={24} color="#00BFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Toggle for all pools */}
+        <View style={{ position: 'absolute', top: 24, right: 16 }}>
+          <TouchableOpacity style={{ backgroundColor: showAllPools ? '#00BFFF' : '#fff', borderRadius: 8, padding: 8, elevation: 4 }} onPress={() => setShowAllPools(v => !v)}>
+            <Text style={{ color: showAllPools ? '#fff' : '#00BFFF', fontWeight: 'bold' }}>All Pools</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );

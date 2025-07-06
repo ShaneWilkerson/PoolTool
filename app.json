@@ -40,6 +40,15 @@
         }
       ]
     ],
+    "plugins": [
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "Allow this app to access your photos to attach receipts to expenses.",
+      "cameraPermission": "Allow this app to use your camera to take receipt photos."
+    }
+  ]
+], 
     "sdkVersion": "52.0.0"
   }
 } 
