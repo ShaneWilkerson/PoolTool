@@ -108,14 +108,7 @@ const CurrentPoolScreen = () => {
             <View key={firstVisit.id} style={styles.visitCard}>
               <View style={styles.visitHeader}>
                 <View style={styles.visitInfo}>
-                  <Text style={styles.visitNumber}>#1</Text>
                   <Text style={styles.customerName}>{getCustomerName(firstVisit.customerId)}</Text>
-                  <Text style={styles.visitTime}>
-                    {new Date(firstVisit.scheduledDate).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.markCompleteButton}
@@ -210,20 +203,11 @@ const styles = StyleSheet.create({
   visitInfo: {
     flex: 1,
   },
-  visitNumber: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
   customerName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 4,
-  },
-  visitTime: {
-    fontSize: 14,
-    color: '#666',
   },
   markCompleteButton: {
     flexDirection: 'row',

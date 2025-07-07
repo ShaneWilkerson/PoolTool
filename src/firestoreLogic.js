@@ -238,4 +238,12 @@ export const getTodosForDate = async (accountId, date) => {
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (a.order || 0) - (b.order || 0));
+};
+
+export const addSupplyStore = async (store) => {
+  return await addDoc(collection(db, 'supplyStores'), {
+    ...store,
+    accountId: auth.currentUser.uid,
+    createdAt: new Date(),
+  });
 }; 

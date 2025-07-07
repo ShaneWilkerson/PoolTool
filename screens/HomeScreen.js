@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, updatePoolVisitOrder, updateTodoOrder, markTodoCompleted } from '../src/firestoreLogic';
@@ -162,7 +163,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
           {/* Row: Add Supply Store & Add Customer */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => setShowAddStore(true)}>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('AddSupplyStore')}>
               <View style={styles.menuButtonContent}>
                 <Ionicons name="storefront" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
                 <Text style={styles.menuButtonText}>Add Supply Store</Text>
@@ -277,54 +278,29 @@ const HomeScreen = ({ navigation }) => {
                       <Text style={styles.taskNumber}>#{index + 1}</Text>
                       <Text style={styles.customerName}>{getCustomerName(todo.customerId)}</Text>
                       <View style={{ flex: 1 }} />
-                      {/* Up Arrow */}
-                      <TouchableOpacity
-                        style={styles.arrowButton}
-                        disabled={index === 0}
-                        onPress={async () => {
-                          if (index === 0) return;
-                          const newArr = arr.slice();
-                          [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
-                          setTodos(newArr);
-                          await Promise.all(
-                            newArr.map((v, idx) => updateTodoOrder(v.id, idx + 1))
-                          );
-                        }}
-                      >
-                        <Ionicons name="arrow-up" size={20} color={index === 0 ? '#ccc' : '#00BFFF'} />
-                      </TouchableOpacity>
-                      {/* Down Arrow */}
-                      <TouchableOpacity
-                        style={styles.arrowButton}
-                        disabled={index === arr.length - 1}
-                        onPress={async () => {
-                          if (index === arr.length - 1) return;
-                          const newArr = arr.slice();
-                          [newArr[index], newArr[index + 1]] = [newArr[index + 1], newArr[index]];
-                          setTodos(newArr);
-                          await Promise.all(
-                            newArr.map((v, idx) => updateTodoOrder(v.id, idx + 1))
-                          );
-                        }}
-                      >
-                        <Ionicons name="arrow-down" size={20} color={index === arr.length - 1 ? '#ccc' : '#00BFFF'} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.viewButton}
-                        onPress={() => navigation.navigate('CustomerDetail', { customerId: todo.customerId })}
-                      >
-                        <Ionicons name="eye" size={16} color="#00BFFF" />
-                        <Text style={styles.viewButtonText}>View</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.viewButton}
-                        onPress={async () => {
-                          await markTodoCompleted(todo.id);
-                        }}
-                      >
-                        <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                        <Text style={[styles.viewButtonText, { color: '#4CAF50' }]}>Mark Complete</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity
+                          style={styles.viewButton}
+                          onPress={() => navigation.navigate('CustomerDetail', { customerId: todo.customerId })}
+                        >
+                          <Ionicons name="eye" size={20} color="#00BFFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.viewButton, { backgroundColor: '#e6f9f0', marginLeft: 8 }]}
+                          onPress={async () => {
+                            Alert.alert(
+                              'Mark Complete',
+                              'Are you sure you want to mark this item as complete?',
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                { text: 'Yes', style: 'default', onPress: async () => { await markTodoCompleted(todo.id); } }
+                              ]
+                            );
+                          }}
+                        >
+                          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                     <View style={styles.taskList}>
                       {todo.items && todo.items.map((item, itemIndex) => (
@@ -354,7 +330,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <View style={styles.statCard}>
             <Ionicons name="time" size={32} color="#FFA500" />
-            <Text style={styles.statNumber}>{todosThisWeek}</Text>
+            <Text style={styles.statNumber}>{todos.length}</Text>
             <Text style={styles.statLabel}>To-Do</Text>
           </View>
         </View>
@@ -523,6 +499,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
+    flexShrink: 1,
+    maxWidth: '50%',
   },
   taskTime: {
     fontSize: 14,

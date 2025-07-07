@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
   FlatList,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, addPoolVisit } from '../src/firestoreLogic';
@@ -48,6 +49,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   });
   const [tasks, setTasks] = useState(['']);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef();
+  const [dropdownTop, setDropdownTop] = useState(0);
 
   // Helper to get start of this week
   const getStartOfThisWeek = () => {
@@ -188,6 +191,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Customer</Text>
           <TextInput
+            ref={inputRef}
             style={styles.searchInput}
             placeholder="Search for customer..."
             value={searchQuery}
@@ -198,7 +202,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
             autoCapitalize="words"
           />
           {filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '' && (
-            <View style={styles.suggestionDropdown}>
+            <View style={[styles.suggestionDropdown, { marginTop: 4 }]}>
               {filteredCustomers.map((customer) => (
                 <TouchableOpacity
                   key={customer.id}
@@ -545,7 +549,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 100,
-    zIndex: 1000,
+    zIndex: 9999,
     maxHeight: 200,
   },
   suggestionItem: {

@@ -30,6 +30,8 @@ import CustomerDetailScreen from './screens/CustomerDetailScreen';
 import CreatePoolVisitScreen from './screens/CreatePoolVisitScreen';
 import AddToDoScreen from './screens/AddToDoScreen';
 import AccountBillingScreen from './screens/AccountBillingScreen';
+import AddSupplyStoreScreen from './screens/AddSupplyStoreScreen';
+import ViewSupplyStoresScreen from './screens/ViewSupplyStoresScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -189,6 +191,28 @@ const RootNavigator = () => {
         component={AccountBillingScreen}
         options={{
           title: 'Account Billing',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="AddSupplyStore" 
+        component={AddSupplyStoreScreen}
+        options={{
+          title: 'Add Supply Store',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="ViewSupplyStores" 
+        component={ViewSupplyStoresScreen}
+        options={{
+          title: 'Supply Stores',
           headerStyle: { backgroundColor: '#00BFFF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },

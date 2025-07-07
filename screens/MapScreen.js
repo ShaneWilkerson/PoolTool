@@ -11,7 +11,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount } from '../src/firestoreLogic';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import * as Location from 'expo-location';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
@@ -23,10 +23,14 @@ const MapScreen = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [zoom, setZoom] = useState(12);
   const [showAllPools, setShowAllPools] = useState(false);
+  const [stores, setStores] = useState([]);
+  const [todos, setTodos] = useState([]);
+  const [poolVisitsToday, setPoolVisitsToday] = useState([]);
+  const [todosThisWeek, setTodosThisWeek] = useState([]);
 
   useEffect(() => {
     const q = query(
-      collection(auth, 'customers'),
+      collection(db, 'customers'),
       where('accountId', '==', auth.currentUser.uid)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -52,6 +56,69 @@ const MapScreen = () => {
         longitudeDelta: 0.1,
       });
     })();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeStores = onSnapshot(
+      query(collection(db, 'supplyStores'), where('accountId', '==', auth.currentUser.uid)),
+      (snapshot) => {
+        setStores(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+    );
+    return () => {
+      unsubscribeStores();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeTodos = onSnapshot(
+      query(collection(db, 'todos'), where('accountId', '==', auth.currentUser.uid), where('status', '==', 'pending')),
+      (snapshot) => {
+        setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
+    );
+    return () => {
+      unsubscribeTodos();
+    };
+  }, []);
+
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const q = query(
+      collection(db, 'poolVisits'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('scheduledDate', '>=', today),
+      where('scheduledDate', '<', tomorrow),
+      where('completed', '==', false)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setPoolVisitsToday(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    endOfWeek.setHours(23, 59, 59, 999);
+    const q = query(
+      collection(db, 'todos'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('dueDate', '>=', startOfWeek),
+      where('dueDate', '<', endOfWeek),
+      where('status', '==', 'pending')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTodosThisWeek(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return unsubscribe;
   }, []);
 
   const getPinColor = (status) => {
@@ -83,100 +150,18 @@ const MapScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Filter Buttons */}
+      {/* Single All Pools Toggle Button */}
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              selectedFilter === 'all' && styles.activeFilterButton,
-            ]}
-            onPress={() => setSelectedFilter('all')}
-          >
-            <Ionicons
-              name="location"
-              size={16}
-              color={selectedFilter === 'all' ? 'white' : '#666'}
-            />
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === 'all' && styles.activeFilterText,
-              ]}
-            >
-              All Pools ({customers.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              selectedFilter === 'today' && styles.activeFilterButton,
-            ]}
-            onPress={() => setSelectedFilter('today')}
-          >
-            <Ionicons
-              name="today"
-              size={16}
-              color={selectedFilter === 'today' ? 'white' : '#00BFFF'}
-            />
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === 'today' && styles.activeFilterText,
-              ]}
-            >
-              Today's Pools (0)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              selectedFilter === 'todo' && styles.activeFilterButton,
-            ]}
-            onPress={() => setSelectedFilter('todo')}
-          >
-            <Ionicons
-              name="alert-circle"
-              size={16}
-              color={selectedFilter === 'todo' ? 'white' : '#FFA500'}
-            />
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === 'todo' && styles.activeFilterText,
-              ]}
-            >
-              To-Do Tasks (0)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              selectedFilter === 'leslies' && styles.activeFilterButton,
-            ]}
-            onPress={() => setSelectedFilter('leslies')}
-          >
-            <Ionicons
-              name="storefront"
-              size={16}
-              color={selectedFilter === 'leslies' ? 'white' : '#008080'}
-            />
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === 'leslies' && styles.activeFilterText,
-              ]}
-            >
-              Stores (3)
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+        <TouchableOpacity
+          style={[styles.filterButton, showAllPools && styles.activeFilterButton]}
+          onPress={() => setShowAllPools(v => !v)}
+        >
+          <Ionicons name="location" size={16} color={showAllPools ? 'white' : '#666'} />
+          <Text style={[styles.filterText, showAllPools && styles.activeFilterText]}>
+            All Pools ({customers.length})
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
           style={{ flex: 1 }}
@@ -187,38 +172,51 @@ const MapScreen = () => {
           {userLocation && (
             <Marker coordinate={userLocation} pinColor="#00BFFF" title="You are here" />
           )}
-          {/* Today's pool visits (turquoise) */}
-          {getFilteredPools().map((pool) => (
-            <Marker
-              key={pool.id}
-              coordinate={{ latitude: 37.7749, longitude: -122.4194 }} // Default coordinates
-              pinColor={getPinColor(pool.status || 'all')}
-              title={pool.name}
-              description={pool.address}
-            />
-          ))}
-          {/* This week's to-dos (orange) */}
-          {/* weeksTodos.map(todo => (
-            <Marker
-              key={todo.id}
-              coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
-              pinColor="#ff9100"
-              title={todo.customerName}
-              description="To-Do This Week"
-            />
-          )) */}
-          {/* All pools (optional, toggle) */}
+          {/* Today's pool visits (light blue) */}
+          {poolVisitsToday.map(visit => {
+            const customer = customers.find(c => c.id === visit.customerId);
+            if (!customer || !customer.latitude || !customer.longitude) return null;
+            return (
+              <Marker
+                key={visit.id + '_today'}
+                coordinate={{ latitude: customer.latitude, longitude: customer.longitude }}
+                pinColor="#00BFFF"
+                title={customer.name}
+                description={customer.address || `${customer.street}, ${customer.city}, ${customer.state} ${customer.zip}`}
+              />
+            );
+          })}
+          {/* All pools (dark blue) */}
           {showAllPools && customers.filter(c => c.latitude && c.longitude).map(pool => (
             <Marker
-              key={pool.id}
+              key={pool.id + '_all'}
               coordinate={{ latitude: pool.latitude, longitude: pool.longitude }}
-              pinColor="#00BFFF"
+              pinColor="#0057B8"
               title={pool.name}
-              description={`${pool.street}, ${pool.city}, ${pool.state} ${pool.zip}`}
+              description={pool.address || `${pool.street}, ${pool.city}, ${pool.state} ${pool.zip}`}
+            />
+          ))}
+          {/* Supply store markers (orange) */}
+          {stores.map(store => (
+            <Marker
+              key={store.id}
+              coordinate={{ latitude: store.latitude, longitude: store.longitude }}
+              pinColor="#FFA500"
+              title={store.name}
+              description={store.address}
+            />
+          ))}
+          {/* To-Do markers (red, for this week only) */}
+          {todosThisWeek.filter(todo => todo.latitude && todo.longitude).map(todo => (
+            <Marker
+              key={todo.id + '_todo'}
+              coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
+              pinColor="#FF0000"
+              title={todo.title || 'To-Do'}
+              description={todo.address || ''}
             />
           ))}
         </MapView>
-
         {/* Empty State Overlay */}
         {customers.length === 0 && (
           <View style={styles.emptyOverlay}>
@@ -229,23 +227,6 @@ const MapScreen = () => {
             </View>
           </View>
         )}
-
-        {/* Zoom in/out buttons */}
-        <View style={{ position: 'absolute', bottom: 24, right: 16, flexDirection: 'column' }}>
-          <TouchableOpacity style={{ backgroundColor: '#fff', borderRadius: 24, padding: 8, marginBottom: 8, elevation: 4 }} onPress={() => setZoom(z => Math.min(z + 1, 20))}>
-            <Ionicons name="add" size={24} color="#00BFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity style={{ backgroundColor: '#fff', borderRadius: 24, padding: 8, elevation: 4 }} onPress={() => setZoom(z => Math.max(z - 1, 2))}>
-            <Ionicons name="remove" size={24} color="#00BFFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Toggle for all pools */}
-        <View style={{ position: 'absolute', top: 24, right: 16 }}>
-          <TouchableOpacity style={{ backgroundColor: showAllPools ? '#00BFFF' : '#fff', borderRadius: 8, padding: 8, elevation: 4 }} onPress={() => setShowAllPools(v => !v)}>
-            <Text style={{ color: showAllPools ? '#fff' : '#00BFFF', fontWeight: 'bold' }}>All Pools</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     </SafeAreaView>
   );

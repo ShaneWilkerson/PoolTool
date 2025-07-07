@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, addTodo } from '../src/firestoreLogic';
@@ -44,6 +45,8 @@ const AddToDoScreen = ({ navigation }) => {
   });
   const [todoItems, setTodoItems] = useState(['']);
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef();
+  const [dropdownTop, setDropdownTop] = useState(0);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -128,7 +131,11 @@ const AddToDoScreen = ({ navigation }) => {
       await addTodo({
         customerId: selectedCustomer.id,
         date: selectedDay,
+        dueDate: selectedDay,
         items: validItems,
+        latitude: selectedCustomer.latitude,
+        longitude: selectedCustomer.longitude,
+        address: selectedCustomer.address || '',
       });
       Alert.alert('Success', 'To-do item(s) added successfully', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -143,20 +150,13 @@ const AddToDoScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={24} color="#00BFFF" />
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>Add To-do Item</Text>
         {/* Customer Search */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Customer</Text>
           <TextInput
+            ref={inputRef}
             style={styles.searchInput}
             placeholder="Search for customer..."
             value={searchQuery}
@@ -167,7 +167,7 @@ const AddToDoScreen = ({ navigation }) => {
             autoCapitalize="words"
           />
           {filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '' && (
-            <View style={styles.suggestionDropdown}>
+            <View style={[styles.suggestionDropdown, { marginTop: 4 }]}>
               {filteredCustomers.map((customer) => (
                 <TouchableOpacity
                   key={customer.id}
@@ -304,21 +304,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 20,
-    backgroundColor: '#f8f9fa',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e5e9',
-  },
-  backButtonText: {
-    fontSize: 18,
-    color: '#00BFFF',
-    fontWeight: '600',
-    marginLeft: 8,
   },
   scrollView: {
     flex: 1,
@@ -505,7 +490,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 100,
-    zIndex: 1000,
+    zIndex: 9999,
     maxHeight: 200,
   },
   suggestionItem: {
