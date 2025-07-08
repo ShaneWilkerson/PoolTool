@@ -167,7 +167,7 @@ const AccountBillingScreen = ({ navigation, route }) => {
                   onPress={() => setExpandedExpense(expandedExpense === expense.id ? null : expense.id)}
                 >
                   <View>
-                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{customer ? customer.name : ''}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{expense.customerName || (customer ? customer.name : '')}</Text>
                     <Text style={{ color: '#666', fontSize: 14 }}>{d.toString() !== 'Invalid Date' ? format(d, 'MMM d, yyyy') : 'No date'}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>

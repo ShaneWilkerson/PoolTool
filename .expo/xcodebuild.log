@@ -3574,14 +3574,15 @@ PrecompileSwiftBridgingHeader normal arm64 (in target 'PoolTracker' from project
 
 SwiftDriverJobDiscovery normal arm64 Compiling bridging header (in target 'PoolTracker' from project 'PoolTracker')
 
-SwiftEmitModule normal arm64 Emitting\ module\ for\ PoolTracker (in target 'PoolTracker' from project 'PoolTracker')
+SwiftCompile normal arm64 Compiling\ ExpoModulesProvider.swift /Users/shanewilkerson/Downloads/PoolTracker/ios/Pods/Target\ Support\ Files/Pods-PoolTracker/ExpoModulesProvider.swift (in target 'PoolTracker' from project 'PoolTracker')
 
-EmitSwiftModule normal arm64 (in target 'PoolTracker' from project 'PoolTracker')
+SwiftCompile normal arm64 /Users/shanewilkerson/Downloads/PoolTracker/ios/Pods/Target\ Support\ Files/Pods-PoolTracker/ExpoModulesProvider.swift (in target 'PoolTracker' from project 'PoolTracker')
     cd /Users/shanewilkerson/Downloads/PoolTracker/ios
     
 
-SwiftCompile normal arm64 Compiling\ ExpoModulesProvider.swift /Users/shanewilkerson/Downloads/PoolTracker/ios/Pods/Target\ Support\ Files/Pods-PoolTracker/ExpoModulesProvider.swift (in target 'PoolTracker' from project 'PoolTracker')
-SwiftCompile normal arm64 /Users/shanewilkerson/Downloads/PoolTracker/ios/Pods/Target\ Support\ Files/Pods-PoolTracker/ExpoModulesProvider.swift (in target 'PoolTracker' from project 'PoolTracker')
+SwiftEmitModule normal arm64 Emitting\ module\ for\ PoolTracker (in target 'PoolTracker' from project 'PoolTracker')
+
+EmitSwiftModule normal arm64 (in target 'PoolTracker' from project 'PoolTracker')
     cd /Users/shanewilkerson/Downloads/PoolTracker/ios
     
 
@@ -4228,14 +4229,14 @@ PhaseScriptExecution [CP]\ Copy\ Pods\ Resources /Users/shanewilkerson/Library/D
 Transfer starting: 46 files
 EXConstants.bundle/app.config
 
-sent 3431 bytes  received 42 bytes  1120322 bytes/sec
+sent 3431 bytes  received 42 bytes  1653809 bytes/sec
 total size is 3903406  speedup is 1123.93
 
 ExtractAppIntentsMetadata (in target 'PoolTracker' from project 'PoolTracker')
     cd /Users/shanewilkerson/Downloads/PoolTracker/ios
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name PoolTracker --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 15.1 --bundle-identifier com.pooltracker.app --output /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Products/Debug-iphonesimulator/PoolTracker.app --target-triple arm64-apple-ios15.1-simulator --binary-file /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Products/Debug-iphonesimulator/PoolTracker.app/PoolTracker --dependency-file /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/Objects-normal/arm64/PoolTracker_dependency_info.dat --stringsdata-file /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/Objects-normal/arm64/PoolTracker.SwiftFileList --metadata-file-list /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/PoolTracker.DependencyMetadataFileList --static-metadata-file-list /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/PoolTracker.DependencyStaticMetadataFileList --swift-const-vals-list /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Intermediates.noindex/PoolTracker.build/Debug-iphonesimulator/PoolTracker.build/Objects-normal/arm64/PoolTracker.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2025-07-07 19:27:37.237 appintentsmetadataprocessor[79679:7069942] Starting appintentsmetadataprocessor export
-2025-07-07 19:27:37.247 appintentsmetadataprocessor[79679:7069942] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2025-07-08 16:49:33.180 appintentsmetadataprocessor[90515:7251211] Starting appintentsmetadataprocessor export
+2025-07-08 16:49:33.188 appintentsmetadataprocessor[90515:7251211] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CodeSign /Users/shanewilkerson/Library/Developer/Xcode/DerivedData/PoolTracker-ahmruaeckbfexfhiyeekiwiqaoaq/Build/Products/Debug-iphonesimulator/PoolTracker.app/PoolTracker.debug.dylib (in target 'PoolTracker' from project 'PoolTracker')
     cd /Users/shanewilkerson/Downloads/PoolTracker/ios

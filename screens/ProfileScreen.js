@@ -149,19 +149,8 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={{ position: 'absolute', top: 48, left: 16, zIndex: 10, backgroundColor: 'white', borderRadius: 20, padding: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3 }}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="arrow-back" size={28} color="#00BFFF" />
-      </TouchableOpacity>
+      {/* Removed the floating back arrow button */}
       <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <View style={styles.placeholder} />
-        </View>
-
         {/* Profile Avatar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>

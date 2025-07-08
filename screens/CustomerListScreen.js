@@ -55,7 +55,7 @@ const CustomerListScreen = ({ navigation }) => {
         >
           <View style={styles.customerInfo}>
             <Text style={styles.customerName}>{item.name}</Text>
-            <Text style={styles.customerId}>ID: {item.id}</Text>
+            <Text style={styles.customerId}>ID: {item.simpleId ? item.simpleId : item.id}</Text>
             <Text style={{ color: '#666', fontSize: 13, marginTop: 2 }}>
               {item.street || item.address || ''}
             </Text>

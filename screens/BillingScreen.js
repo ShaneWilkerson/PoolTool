@@ -96,9 +96,10 @@ const BillingScreen = ({ navigation }) => {
   // Helper: is customer owing?
   const isOwing = (customerId) => getAmountOwed(customerId) > 0;
 
-  // Outstanding sum
+  // Outstanding sum (only for active customers)
   const calculateOutstanding = () => {
-    return invoices.filter(inv => inv.status !== 'paid').reduce((total, inv) => total + (inv.amount || 0), 0);
+    const activeCustomerIds = customers.filter(c => c.isActive !== false).map(c => c.id);
+    return invoices.filter(inv => inv.status !== 'paid' && activeCustomerIds.includes(inv.customerId)).reduce((total, inv) => total + (inv.amount || 0), 0);
   };
 
   // Sort customers: owing first
@@ -455,7 +456,7 @@ const BillingScreen = ({ navigation }) => {
                 onPress={() => setExpandedExpense(expandedExpense === expense.id ? null : expense.id)}
               >
                 <View>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{getCustomerName(expense.customerId)}</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{expense.customerName || getCustomerName(expense.customerId)}</Text>
                   <Text style={{ color: '#666', fontSize: 14 }}>{d.toString() !== 'Invalid Date' ? format(d, 'MMM d, yyyy') : 'No date'}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>

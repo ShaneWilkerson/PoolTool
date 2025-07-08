@@ -158,7 +158,7 @@ const MapScreen = () => {
         >
           <Ionicons name="location" size={16} color={showAllPools ? 'white' : '#666'} />
           <Text style={[styles.filterText, showAllPools && styles.activeFilterText]}>
-            All Pools ({customers.length})
+            All Pools
           </Text>
         </TouchableOpacity>
       </View>

@@ -11,34 +11,28 @@ export const addAccount = async (accountData) => {
 
 // CUSTOMERS
 export const addCustomer = async (customerData) => {
-  // Get the next simpleId in a transaction
+  // Get all customers to find the max simpleId
   const customersRef = collection(db, 'customers');
-  let newSimpleId;
-  await runTransaction(db, async (transaction) => {
-    const snapshot = await transaction.get(customersRef);
-    let maxId = 999;
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.simpleId && !isNaN(Number(data.simpleId))) {
-        maxId = Math.max(maxId, Number(data.simpleId));
-      }
-    });
-    newSimpleId = (maxId + 1).toString();
-    const newDocRef = doc(customersRef);
-    transaction.set(newDocRef, {
-      ...customerData,
-      accountId: auth.currentUser.uid,
-      billingStatus: 'unpaid',
-      dueDate: null,
-      invoiceId: null,
-      isActive: true,
-      simpleId: newSimpleId,
-    });
+  const snapshot = await getDocs(customersRef);
+  let maxId = 999;
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (data.simpleId && !isNaN(Number(data.simpleId))) {
+      maxId = Math.max(maxId, Number(data.simpleId));
+    }
   });
-  // Find the new customer doc
-  const q = query(customersRef, where('simpleId', '==', newSimpleId));
-  const newSnapshot = await getDocs(q);
-  return newSnapshot.docs.length > 0 ? { id: newSnapshot.docs[0].id, ...newSnapshot.docs[0].data() } : null;
+  const newSimpleId = (maxId + 1).toString();
+  const docRef = await addDoc(customersRef, {
+    ...customerData,
+    accountId: auth.currentUser.uid,
+    billingStatus: 'unpaid',
+    dueDate: null,
+    invoiceId: null,
+    isActive: true,
+    simpleId: newSimpleId,
+  });
+  const newDoc = await getDocs(query(customersRef, where('simpleId', '==', newSimpleId)));
+  return newDoc.docs.length > 0 ? { id: newDoc.docs[0].id, ...newDoc.docs[0].data() } : null;
 };
 export const softDeleteCustomer = async (customerId) => {
   await updateDoc(doc(db, 'customers', customerId), {
@@ -116,8 +110,25 @@ export const getReceiptsForAccount = async (accountId) => {
 
 // EXPENSES
 export const addExpense = async (expenseData) => {
+  // Look up customer name/email if not provided
+  let customerName = expenseData.customerName;
+  let customerEmail = expenseData.customerEmail;
+  if ((!customerName || !customerEmail) && expenseData.customerId) {
+    // Try to fetch customer from Firestore
+    const customerDoc = await getDocs(query(collection(db, 'customers'), where('id', '==', expenseData.customerId)));
+    if (!customerName && !customerDoc.empty) {
+      const data = customerDoc.docs[0].data();
+      customerName = data.name;
+      customerEmail = data.email;
+    }
+  }
+  // Ensure no undefined values
+  if (customerName === undefined || customerName === null) customerName = '';
+  if (customerEmail === undefined || customerEmail === null) customerEmail = '';
   return await addDoc(collection(db, 'expenses'), {
     ...expenseData,
+    customerName,
+    customerEmail,
     accountId: auth.currentUser.uid,
     date: new Date(),
   });
