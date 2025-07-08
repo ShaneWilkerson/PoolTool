@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase';
-import { collection, addDoc, updateDoc, doc, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDocs, query, where, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
 
 // ACCOUNTS
 export const addAccount = async (accountData) => {
@@ -11,14 +11,34 @@ export const addAccount = async (accountData) => {
 
 // CUSTOMERS
 export const addCustomer = async (customerData) => {
-  return await addDoc(collection(db, 'customers'), {
-    ...customerData,
-    accountId: auth.currentUser.uid,
-    billingStatus: 'unpaid',
-    dueDate: null,
-    invoiceId: null,
-    isActive: true,
+  // Get the next simpleId in a transaction
+  const customersRef = collection(db, 'customers');
+  let newSimpleId;
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(customersRef);
+    let maxId = 999;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.simpleId && !isNaN(Number(data.simpleId))) {
+        maxId = Math.max(maxId, Number(data.simpleId));
+      }
+    });
+    newSimpleId = (maxId + 1).toString();
+    const newDocRef = doc(customersRef);
+    transaction.set(newDocRef, {
+      ...customerData,
+      accountId: auth.currentUser.uid,
+      billingStatus: 'unpaid',
+      dueDate: null,
+      invoiceId: null,
+      isActive: true,
+      simpleId: newSimpleId,
+    });
   });
+  // Find the new customer doc
+  const q = query(customersRef, where('simpleId', '==', newSimpleId));
+  const newSnapshot = await getDocs(q);
+  return newSnapshot.docs.length > 0 ? { id: newSnapshot.docs[0].id, ...newSnapshot.docs[0].data() } : null;
 };
 export const softDeleteCustomer = async (customerId) => {
   await updateDoc(doc(db, 'customers', customerId), {
@@ -50,20 +70,30 @@ export const getTasksForCustomer = async (customerId) => {
 };
 
 // INVOICES
-export const addInvoice = async (invoiceData) => {
+export async function addInvoice({ customerId, services, amount, dueDate }) {
+  // Convert dueDate to Firestore Timestamp if it's a Date object
+  let dueDateToSave = dueDate;
+  if (dueDate instanceof Date && !isNaN(dueDate)) {
+    // Use Firestore Timestamp from modular SDK
+    dueDateToSave = dueDate;
+  }
   const docRef = await addDoc(collection(db, 'invoices'), {
-    ...invoiceData,
-    accountId: auth.currentUser.uid,
+    customerId,
+    services,
+    amount,
+    dueDate: dueDateToSave,
     status: 'unpaid',
+    createdAt: serverTimestamp(),
+    accountId: auth.currentUser.uid,
   });
   // Update customer with new invoiceId
-  await updateDoc(doc(db, 'customers', invoiceData.customerId), {
+  await updateDoc(doc(db, 'customers', customerId), {
     invoiceId: docRef.id,
     billingStatus: 'unpaid',
-    dueDate: invoiceData.dueDate,
+    dueDate: dueDateToSave,
   });
   return docRef;
-};
+}
 export const getInvoicesForAccount = async (accountId) => {
   const q = query(collection(db, 'invoices'), where('accountId', '==', accountId));
   const snapshot = await getDocs(q);

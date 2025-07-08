@@ -10,10 +10,15 @@ import {
   ScrollView,
   FlatList,
   Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, addPoolVisit } from '../src/firestoreLogic';
 import { auth } from '../firebase';
+import SelectedCustomerBox from '../src/SelectedCustomerBox';
+import DateSelector from '../src/DateSelector';
 
 // Helper to get days in the selected week
 const getWeekDays = (weekStart) => {
@@ -50,7 +55,9 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   const [tasks, setTasks] = useState(['']);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef();
-  const [dropdownTop, setDropdownTop] = useState(0);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
 
   // Helper to get start of this week
   const getStartOfThisWeek = () => {
@@ -88,6 +95,30 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       setFilteredCustomers(filtered.slice(0, 5)); // Limit to 5 results
     }
   }, [searchQuery, customers]);
+
+  // Show dropdown when typing
+  useEffect(() => {
+    if (filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '') {
+      setDropdownVisible(true);
+    } else {
+      setDropdownVisible(false);
+    }
+  }, [filteredCustomers, selectedCustomer, searchQuery]);
+
+  // Measure input position for dropdown
+  const showDropdown = () => {
+    if (inputRef.current) {
+      inputRef.current.measureInWindow((x, y, width, height) => {
+        setDropdownPosition({ top: y - rootLayout.y + height, left: x - rootLayout.x, width });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (dropdownVisible) {
+      setTimeout(showDropdown, 0); // Wait for layout
+    }
+  }, [dropdownVisible]);
 
   const selectCustomer = (customer) => {
     setSelectedCustomer(customer);
@@ -174,7 +205,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
       {/* Back Button */}
       <TouchableOpacity
         style={styles.backButton}
@@ -184,116 +215,46 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create Pool Visit</Text>
 
         {/* Customer Search */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Customer</Text>
-          <TextInput
-            ref={inputRef}
-            style={styles.searchInput}
-            placeholder="Search for customer..."
-            value={searchQuery}
-            onChangeText={text => {
-              setSearchQuery(text);
-              setSelectedCustomer(null);
-            }}
-            autoCapitalize="words"
-          />
-          {filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '' && (
-            <View style={[styles.suggestionDropdown, { marginTop: 4 }]}>
-              {filteredCustomers.map((customer) => (
-                <TouchableOpacity
-                  key={customer.id}
-                  style={styles.suggestionItem}
-                  onPress={() => selectCustomer(customer)}
-                >
-                  <Text style={styles.customerName}>{customer.name}</Text>
-                  <Text style={styles.customerEmail}>{customer.email}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {!selectedCustomer && (
+            <TextInput
+              ref={inputRef}
+              style={styles.searchInput}
+              placeholder="Search for customer..."
+              value={searchQuery}
+              onChangeText={text => {
+                setSearchQuery(text);
+                setSelectedCustomer(null);
+              }}
+              onFocus={showDropdown}
+              autoCapitalize="words"
+            />
           )}
           {selectedCustomer && (
-            <View style={styles.selectedCustomer}>
-              <Text style={styles.selectedCustomerText}>
-                Selected: {selectedCustomer.name}
-              </Text>
-              <TouchableOpacity
-                style={styles.changeCustomerButton}
-                onPress={() => {
-                  setSelectedCustomer(null);
-                  setSearchQuery('');
-                }}
-              >
-                <Text style={styles.changeCustomerText}>Change</Text>
-              </TouchableOpacity>
-            </View>
+            <SelectedCustomerBox
+              customer={selectedCustomer}
+              onChange={() => {
+                setSelectedCustomer(null);
+                setSearchQuery('');
+              }}
+            />
           )}
         </View>
 
         {/* Date Selector */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Date</Text>
-          {/* Week Navigation */}
-          <View style={styles.dateSelector}>
-            <TouchableOpacity
-              style={styles.dateArrow}
-              onPress={() => changeWeek(-1)}
-            >
-              <Ionicons name="chevron-back" size={24} color="#00BFFF" />
-            </TouchableOpacity>
-            <View style={styles.dateDisplay}>
-              <Text style={styles.dateText}>
-                Week of {selectedWeekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.dateArrow}
-              onPress={() => changeWeek(1)}
-            >
-              <Ionicons name="chevron-forward" size={24} color="#00BFFF" />
-            </TouchableOpacity>
-          </View>
-          {/* Days of the week */}
-          <View style={styles.weekDaysRow}>
-            {getWeekDays(selectedWeekStart).map((day, idx) => {
-              const isSelected = selectedDay && day.toDateString() === selectedDay.toDateString();
-              // Only apply today style if not selected
-              const isToday = !isSelected && day.toDateString() === todayDate.toDateString();
-              // Limit to 6 months in advance
-              const sixMonthsFromNow = new Date();
-              sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-              // Only allow selecting today or future days
-              const isDisabled = day < todayDate || day > sixMonthsFromNow;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={[styles.dayButton, isSelected ? styles.selectedDayButton : isToday ? styles.todayButton : null, isDisabled && styles.disabledDayButton]}
-                  onPress={() => {
-                    if (isDisabled) return;
-                    setSelectedDay(day);
-                  }}
-                  disabled={isDisabled}
-                >
-                  <Text style={[styles.dayButtonText, isSelected ? styles.selectedDayButtonText : isToday ? styles.todayButtonText : null, isDisabled && styles.disabledDayButtonText]}>
-                    {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </Text>
-                  <Text style={[styles.dayButtonText, isSelected ? styles.selectedDayButtonText : isToday ? styles.todayButtonText : null, isDisabled && styles.disabledDayButtonText]}>
-                    {day.getDate()}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {selectedDay && (
-            <View style={{ alignItems: 'center', marginTop: 8 }}>
-              <Text style={{ fontSize: 16, color: '#00BFFF', fontWeight: 'bold' }}>
-                Selected: {selectedDay.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </Text>
-            </View>
-          )}
+          <DateSelector
+            selectedWeekStart={selectedWeekStart}
+            setSelectedWeekStart={setSelectedWeekStart}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+          />
         </View>
 
         {/* Tasks */}
@@ -340,6 +301,49 @@ const CreatePoolVisitScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Dropdown Overlay (not Modal) */}
+      {dropdownVisible && (
+        <View style={[styles.dropdownOverlay, { pointerEvents: 'box-none' }]}> 
+          {/* Tap outside to close */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setDropdownVisible(false)}
+            pointerEvents="auto"
+          />
+          <View
+            style={[
+              styles.suggestionDropdown,
+              {
+                position: 'absolute',
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: dropdownPosition.width,
+                zIndex: 9999,
+                backgroundColor: '#fff',
+              },
+            ]}
+            pointerEvents="auto"
+          >
+            {filteredCustomers.map((customer) => (
+              <TouchableOpacity
+                key={customer.id}
+                style={styles.suggestionItem}
+                onPress={() => {
+                  setSelectedCustomer(customer);
+                  setSearchQuery(customer.name);
+                  setFilteredCustomers([]);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={styles.customerName}>{customer.name}</Text>
+                <Text style={styles.customerEmail}>{customer.email}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -535,12 +539,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  suggestionDropdown: {
+  dropdownOverlay: {
     position: 'absolute',
-    top: 70,
+    top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    bottom: 0,
+    zIndex: 9999,
+  },
+  suggestionDropdown: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e1e5e9',
@@ -551,6 +558,7 @@ const styles = StyleSheet.create({
     elevation: 100,
     zIndex: 9999,
     maxHeight: 200,
+    backgroundColor: '#fff',
   },
   suggestionItem: {
     padding: 16,

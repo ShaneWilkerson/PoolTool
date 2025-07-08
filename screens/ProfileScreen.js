@@ -149,15 +149,15 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={{ position: 'absolute', top: 48, left: 16, zIndex: 10, backgroundColor: 'white', borderRadius: 20, padding: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 3 }}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={28} color="#00BFFF" />
+      </TouchableOpacity>
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#00BFFF" />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.placeholder} />
         </View>
@@ -316,9 +316,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     backgroundColor: '#00BFFF',
-  },
-  backButton: {
-    padding: 8,
   },
   headerTitle: {
     fontSize: 20,

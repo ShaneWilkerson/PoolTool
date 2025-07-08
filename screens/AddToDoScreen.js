@@ -46,7 +46,9 @@ const AddToDoScreen = ({ navigation }) => {
   const [todoItems, setTodoItems] = useState(['']);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef();
-  const [dropdownTop, setDropdownTop] = useState(0);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -72,6 +74,14 @@ const AddToDoScreen = ({ navigation }) => {
       setFilteredCustomers(filtered.slice(0, 5));
     }
   }, [searchQuery, customers]);
+
+  useEffect(() => {
+    if (filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '') {
+      setDropdownVisible(true);
+    } else {
+      setDropdownVisible(false);
+    }
+  }, [filteredCustomers, selectedCustomer, searchQuery]);
 
   const selectCustomer = (customer) => {
     setSelectedCustomer(customer);
@@ -112,6 +122,20 @@ const AddToDoScreen = ({ navigation }) => {
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
+  const showDropdown = () => {
+    if (inputRef.current) {
+      inputRef.current.measureInWindow((x, y, width, height) => {
+        setDropdownPosition({ top: y + height, left: x, width });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (dropdownVisible) {
+      setTimeout(showDropdown, 0);
+    }
+  }, [dropdownVisible]);
+
   const handleSubmit = async () => {
     if (!selectedCustomer) {
       Alert.alert('Error', 'Please select a customer');
@@ -149,8 +173,8 @@ const AddToDoScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
+      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Add To-do Item</Text>
         {/* Customer Search */}
         <View style={styles.section}>
@@ -164,22 +188,9 @@ const AddToDoScreen = ({ navigation }) => {
               setSearchQuery(text);
               setSelectedCustomer(null);
             }}
+            onFocus={showDropdown}
             autoCapitalize="words"
           />
-          {filteredCustomers.length > 0 && !selectedCustomer && searchQuery.trim() !== '' && (
-            <View style={[styles.suggestionDropdown, { marginTop: 4 }]}>
-              {filteredCustomers.map((customer) => (
-                <TouchableOpacity
-                  key={customer.id}
-                  style={styles.suggestionItem}
-                  onPress={() => selectCustomer(customer)}
-                >
-                  <Text style={styles.customerName}>{customer.name}</Text>
-                  <Text style={styles.customerEmail}>{customer.email}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
           {selectedCustomer && (
             <View style={styles.selectedCustomer}>
               <Text style={styles.selectedCustomerText}>
@@ -296,6 +307,48 @@ const AddToDoScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      {/* Dropdown Overlay (not Modal, not portal) */}
+      {dropdownVisible && (
+        <View style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 9999 }} pointerEvents="box-none">
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setDropdownVisible(false)}
+            pointerEvents="auto"
+          />
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e1e5e9',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3.84,
+              elevation: 100,
+              maxHeight: 200,
+            }}
+            pointerEvents="auto"
+          >
+            {filteredCustomers.map((customer) => (
+              <TouchableOpacity
+                key={customer.id}
+                style={styles.suggestionItem}
+                onPress={() => {
+                  setSelectedCustomer(customer);
+                  setSearchQuery(customer.name);
+                  setFilteredCustomers([]);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={styles.customerName}>{customer.name}</Text>
+                <Text style={styles.customerEmail}>{customer.email}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -475,23 +528,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  suggestionDropdown: {
-    position: 'absolute',
-    top: 70,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e1e5e9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 100,
-    zIndex: 9999,
-    maxHeight: 200,
   },
   suggestionItem: {
     padding: 16,

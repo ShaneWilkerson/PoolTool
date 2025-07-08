@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
 import { addInvoice, getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
+import SelectedCustomerBox from '../src/SelectedCustomerBox';
+import DateSelector from '../src/DateSelector';
 
 const AddInvoiceScreen = ({ navigation }) => {
   const [customerId, setCustomerId] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
   const [services, setServices] = useState('');
   const [amount, setAmount] = useState('');
-  const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -18,6 +19,28 @@ const AddInvoiceScreen = ({ navigation }) => {
   const [dropdownTop, setDropdownTop] = useState(0);
   const [dropdownLeft, setDropdownLeft] = useState(0);
   const [dropdownWidth, setDropdownWidth] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
+  const getStartOfThisWeek = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(today.getDate() - today.getDay());
+    return start;
+  };
+  const initialWeekStart = getStartOfThisWeek();
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(initialWeekStart);
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(initialWeekStart);
+      d.setDate(initialWeekStart.getDate() + i);
+      return d;
+    });
+    const found = weekDays.find(d => d.toDateString() === todayDate.toDateString());
+    return found ? todayDate : null;
+  });
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -45,8 +68,30 @@ const AddInvoiceScreen = ({ navigation }) => {
     }
   }, [customerSearch, customers]);
 
+  useEffect(() => {
+    if (filteredCustomers.length > 0 && !selectedCustomer && customerSearch.trim() !== '') {
+      setDropdownVisible(true);
+    } else {
+      setDropdownVisible(false);
+    }
+  }, [filteredCustomers, selectedCustomer, customerSearch]);
+
+  const showDropdown = () => {
+    if (inputRef.current) {
+      inputRef.current.measureInWindow((x, y, width, height) => {
+        setDropdownPosition({ top: y + height, left: x, width });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (dropdownVisible) {
+      setTimeout(showDropdown, 0);
+    }
+  }, [dropdownVisible]);
+
   const handleAddInvoice = async () => {
-    if (!selectedCustomer || !services || !amount || !dueDate) {
+    if (!selectedCustomer || !services || !amount || !selectedDay) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -56,7 +101,7 @@ const AddInvoiceScreen = ({ navigation }) => {
         customerId: selectedCustomer.id,
         services: services.split(',').map(s => s.trim()),
         amount: parseFloat(amount),
-        dueDate: new Date(dueDate),
+        dueDate: selectedDay,
       });
       Alert.alert('Success', 'Invoice added successfully', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -70,77 +115,91 @@ const AddInvoiceScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>New Invoice</Text>
           <Text style={styles.label}>Customer</Text>
           <View style={{ position: 'relative' }}>
-            <TextInput
-              ref={inputRef}
-              style={styles.input}
-              placeholder="Search for customer..."
-              value={selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.email})` : customerSearch}
-              onChangeText={text => {
-                setCustomerSearch(text);
-                setSelectedCustomer(null);
-                setShowDropdown(true);
-              }}
-              onFocus={() => {
-                setShowDropdown(true);
-                setTimeout(() => {
-                  inputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-                    setDropdownTop(y + height);
-                    setDropdownLeft(x);
-                    setDropdownWidth(width);
-                  });
-                }, 100);
-              }}
-              autoCapitalize="none"
-            />
-            {showDropdown && filteredCustomers.length > 0 && !selectedCustomer && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 56, // height of input + margin
-                  left: 0,
-                  width: '100%',
-                  backgroundColor: 'white',
-                  borderRadius: 12,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
-                  elevation: 10,
-                  zIndex: 9999,
-                  paddingVertical: 4,
+            {!selectedCustomer && (
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                placeholder="Search for customer..."
+                value={customerSearch}
+                onChangeText={text => {
+                  setCustomerSearch(text);
+                  setSelectedCustomer(null);
                 }}
-              >
-                {filteredCustomers.map((customer) => (
-                  <TouchableOpacity
-                    key={customer.id}
-                    style={styles.suggestionItem}
-                    onPress={() => {
-                      setSelectedCustomer(customer);
-                      setCustomerSearch(`${customer.name} (${customer.email})`);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.customerName}>{customer.name}</Text>
-                    <Text style={styles.customerEmail}>{customer.email}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                onFocus={showDropdown}
+                autoCapitalize="none"
+              />
+            )}
+            {selectedCustomer && (
+              <SelectedCustomerBox
+                customer={selectedCustomer}
+                onChange={() => {
+                  setSelectedCustomer(null);
+                  setCustomerSearch('');
+                }}
+              />
             )}
           </View>
           <TextInput style={styles.input} placeholder="Services (comma separated)" value={services} onChangeText={setServices} />
           <TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-          <TextInput style={styles.input} placeholder="Due Date (YYYY-MM-DD)" value={dueDate} onChangeText={setDueDate} />
+          <Text style={styles.label}>Due Date</Text>
+          <DateSelector
+            selectedWeekStart={selectedWeekStart}
+            setSelectedWeekStart={setSelectedWeekStart}
+            selectedDay={selectedDay}
+            setSelectedDay={setSelectedDay}
+          />
           <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleAddInvoice} disabled={loading}>
             <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add Invoice'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Dropdown Overlay (not Modal, not portal) */}
+      {dropdownVisible && (
+        <View style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 9999 }} pointerEvents="box-none">
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setDropdownVisible(false)}
+            pointerEvents="auto"
+          />
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e1e5e9',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3.84,
+              elevation: 100,
+              maxHeight: 200,
+            }}
+            pointerEvents="auto"
+          >
+            {filteredCustomers.map((customer) => (
+              <TouchableOpacity
+                key={customer.id}
+                style={styles.suggestionItem}
+                onPress={() => {
+                  setSelectedCustomer(customer);
+                  setCustomerSearch(`${customer.name} (${customer.email})`);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={styles.customerName}>{customer.name}</Text>
+                <Text style={styles.customerEmail}>{customer.email}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -181,6 +240,27 @@ const styles = StyleSheet.create({
   },
   customerName: { fontSize: 16, fontWeight: '600' },
   customerEmail: { fontSize: 14, color: '#666' },
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+  },
+  changeCustomerButton: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    padding: 8,
+    backgroundColor: '#00BFFF',
+    borderRadius: 8,
+  },
+  changeCustomerText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
 
 export default AddInvoiceScreen; 

@@ -127,8 +127,8 @@ const HomeScreen = ({ navigation }) => {
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileInitials}>User</Text>
+          <View style={styles.profileAvatarIcon}>
+            <Ionicons name="person" size={20} color="#00BFFF" />
           </View>
         </TouchableOpacity>
       ),
@@ -454,18 +454,15 @@ const styles = StyleSheet.create({
   profileButton: {
     marginRight: 16,
   },
-  profileAvatar: {
+  profileAvatarIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#00BFFF',
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  profileInitials: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 10,
+    borderWidth: 1,
+    borderColor: '#e3f2fd',
   },
   tasksContainer: {
     flexDirection: 'column',

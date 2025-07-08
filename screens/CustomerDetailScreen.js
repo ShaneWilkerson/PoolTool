@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { softDeleteCustomer } from '../src/firestoreLogic';
+import BillingStatus from '../src/BillingStatus';
 
 const CustomerDetailScreen = ({ navigation, route }) => {
   const { customerId } = route.params;
@@ -106,7 +107,7 @@ const CustomerDetailScreen = ({ navigation, route }) => {
             <Ionicons name="person" size={48} color="#00BFFF" />
           </View>
           <Text style={styles.customerName}>{customer.name}</Text>
-          <Text style={styles.customerId}>ID: {customer.id}</Text>
+          <Text style={styles.customerId}>ID: {customer.simpleId || customer.id}</Text>
         </View>
 
         {/* Customer Information */}
@@ -136,52 +137,7 @@ const CustomerDetailScreen = ({ navigation, route }) => {
         {/* Billing Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Billing Status</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="card" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Status:</Text>
-              <Text style={[styles.infoValue, { color: customer.billingStatus === 'paid' ? '#4CAF50' : '#FFA500' }]}>
-                {customer.billingStatus || 'unpaid'}
-              </Text>
-            </View>
-            {customer.dueDate && (
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={20} color="#666" />
-                <Text style={styles.infoLabel}>Due Date:</Text>
-                <Text style={styles.infoValue}>{new Date(customer.dueDate).toLocaleDateString()}</Text>
-              </View>
-            )}
-            {customer.invoiceId && (
-              <View style={styles.infoRow}>
-                <Ionicons name="document-text" size={20} color="#666" />
-                <Text style={styles.infoLabel}>Invoice ID:</Text>
-                <Text style={styles.infoValue}>{customer.invoiceId}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="document-text" size={24} color="#00BFFF" />
-              <Text style={styles.actionText}>Create Invoice</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="call" size={24} color="#00BFFF" />
-              <Text style={styles.actionText}>Call Customer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="mail" size={24} color="#00BFFF" />
-              <Text style={styles.actionText}>Send Email</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="navigate" size={24} color="#00BFFF" />
-              <Text style={styles.actionText}>Navigate</Text>
-            </TouchableOpacity>
-          </View>
+          <BillingStatus customerId={customer.id} />
         </View>
       </ScrollView>
       <TouchableOpacity

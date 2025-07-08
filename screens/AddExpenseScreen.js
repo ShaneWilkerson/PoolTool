@@ -2,18 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { addExpense, getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
+import SelectedCustomerBox from '../src/SelectedCustomerBox';
 
 const AddExpenseScreen = ({ navigation }) => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
   const inputRef = useRef(null);
   const [items, setItems] = useState(['']);
   const [amount, setAmount] = useState('');
   const [supplyStore, setSupplyStore] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -39,6 +42,14 @@ const AddExpenseScreen = ({ navigation }) => {
       setFilteredCustomers(filtered.slice(0, 5));
     }
   }, [customerSearch, customers]);
+
+  useEffect(() => {
+    if (filteredCustomers.length > 0 && !selectedCustomer && customerSearch.trim() !== '') {
+      setDropdownVisible(true);
+    } else {
+      setDropdownVisible(false);
+    }
+  }, [filteredCustomers, selectedCustomer, customerSearch]);
 
   const handleAddItem = () => {
     if (items[items.length - 1].trim() !== '') {
@@ -76,59 +87,49 @@ const AddExpenseScreen = ({ navigation }) => {
     }
   };
 
+  const showDropdown = () => {
+    if (inputRef.current) {
+      inputRef.current.measureInWindow((x, y, width, height) => {
+        setDropdownPosition({ top: y + height, left: x, width });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (dropdownVisible) {
+      setTimeout(showDropdown, 0);
+    }
+  }, [dropdownVisible]);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>Add Expense</Text>
           <Text style={styles.label}>Customer</Text>
           <View style={{ position: 'relative' }}>
-            <TextInput
-              ref={inputRef}
-              style={styles.input}
-              placeholder="Search for customer..."
-              value={selectedCustomer ? `${selectedCustomer.name} (${selectedCustomer.email})` : customerSearch}
-              onChangeText={text => {
-                setCustomerSearch(text);
-                setSelectedCustomer(null);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              autoCapitalize="none"
-            />
-            {showDropdown && filteredCustomers.length > 0 && !selectedCustomer && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 56,
-                  left: 0,
-                  width: '100%',
-                  backgroundColor: 'white',
-                  borderRadius: 12,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 6,
-                  elevation: 10,
-                  zIndex: 9999,
-                  paddingVertical: 4,
+            {!selectedCustomer && (
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                placeholder="Search for customer..."
+                value={customerSearch}
+                onChangeText={text => {
+                  setCustomerSearch(text);
+                  setSelectedCustomer(null);
                 }}
-              >
-                {filteredCustomers.map((customer) => (
-                  <TouchableOpacity
-                    key={customer.id}
-                    style={styles.suggestionItem}
-                    onPress={() => {
-                      setSelectedCustomer(customer);
-                      setCustomerSearch(`${customer.name} (${customer.email})`);
-                      setShowDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.customerName}>{customer.name}</Text>
-                    <Text style={styles.customerEmail}>{customer.email}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                onFocus={showDropdown}
+                autoCapitalize="none"
+              />
+            )}
+            {selectedCustomer && (
+              <SelectedCustomerBox
+                customer={selectedCustomer}
+                onChange={() => {
+                  setSelectedCustomer(null);
+                  setCustomerSearch('');
+                }}
+              />
             )}
           </View>
           <Text style={styles.label}>Items</Text>
@@ -155,6 +156,47 @@ const AddExpenseScreen = ({ navigation }) => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Dropdown Overlay (not Modal, not portal) */}
+      {dropdownVisible && (
+        <View style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 9999 }} pointerEvents="box-none">
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setDropdownVisible(false)}
+            pointerEvents="auto"
+          />
+          <View
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#e1e5e9',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3.84,
+              elevation: 100,
+              maxHeight: 200,
+            }}
+            pointerEvents="auto"
+          >
+            {filteredCustomers.map((customer) => (
+              <TouchableOpacity
+                key={customer.id}
+                style={styles.suggestionItem}
+                onPress={() => {
+                  setSelectedCustomer(customer);
+                  setCustomerSearch(`${customer.name} (${customer.email})`);
+                  setDropdownVisible(false);
+                }}
+              >
+                <Text style={styles.customerName}>{customer.name}</Text>
+                <Text style={styles.customerEmail}>{customer.email}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -174,6 +216,8 @@ const styles = StyleSheet.create({
   suggestionItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#e1e5e9' },
   customerName: { fontSize: 16, fontWeight: '600' },
   customerEmail: { fontSize: 14, color: '#666' },
+  changeCustomerButton: { padding: 12, alignItems: 'center' },
+  changeCustomerText: { color: '#00BFFF', fontWeight: 'bold' },
 });
 
 export default AddExpenseScreen; 

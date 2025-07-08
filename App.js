@@ -32,6 +32,7 @@ import AddToDoScreen from './screens/AddToDoScreen';
 import AccountBillingScreen from './screens/AccountBillingScreen';
 import AddSupplyStoreScreen from './screens/AddSupplyStoreScreen';
 import ViewSupplyStoresScreen from './screens/ViewSupplyStoresScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -218,6 +219,11 @@ const RootNavigator = () => {
           headerTitleStyle: { fontWeight: 'bold' },
           headerBackTitle: 'Back',
         }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

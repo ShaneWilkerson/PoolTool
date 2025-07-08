@@ -102,10 +102,8 @@ const AuthScreen = ({ navigation }) => {
         errorMessage = 'Please enter a valid email address';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'Password should be at least 6 characters';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = 'The email and password do not match. Please try again.';
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your internet connection';
       } else if (error.code === 'auth/too-many-requests') {
@@ -178,6 +176,14 @@ const AuthScreen = ({ navigation }) => {
               />
             </View>
 
+            <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+              {!isSignUp && (
+                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                  <Text style={{ color: '#00BFFF', fontWeight: '600' }}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleAuth}
@@ -205,13 +211,6 @@ const AuthScreen = ({ navigation }) => {
                 }
               </Text>
             </TouchableOpacity>
-
-            {/* Demo account info */}
-            <View style={styles.demoInfo}>
-              <Text style={styles.demoTitle}>Demo Account:</Text>
-              <Text style={styles.demoText}>Email: johnapple@gmail.com</Text>
-              <Text style={styles.demoText}>Password: poollover</Text>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -290,25 +289,6 @@ const styles = StyleSheet.create({
     color: '#00BFFF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  demoInfo: {
-    marginTop: 40,
-    padding: 16,
-    backgroundColor: '#e3f2fd',
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#00BFFF',
-  },
-  demoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  demoText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
   },
 });
 

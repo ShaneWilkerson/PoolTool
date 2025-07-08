@@ -4,6 +4,7 @@
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 const createDemoUser = async () => {
   try {
@@ -42,4 +43,22 @@ const createDemoUser = async () => {
 };
 
 // Uncomment the line below to run this script
-// createDemoUser(); 
+// createDemoUser();
+
+// Run this script once to clean up all customers for the current user
+async function cleanupCustomers() {
+  const q = query(
+    collection(db, 'customers'),
+    where('accountId', '==', auth.currentUser.uid)
+  );
+  const snapshot = await getDocs(q);
+  for (const d of snapshot.docs) {
+    await updateDoc(doc(db, 'customers', d.id), {
+      isActive: true,
+      deleted: false,
+    });
+  }
+  console.log('All customers set to isActive: true, deleted: false');
+}
+
+cleanupCustomers(); 

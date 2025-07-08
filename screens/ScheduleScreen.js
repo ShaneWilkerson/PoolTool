@@ -212,34 +212,36 @@ const ScheduleScreen = () => {
                   ) : (
                     <>
                       {dayVisits.map((visit, visitIndex) => (
-                        <View key={visit.id} style={styles.visitItem}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="water" size={18} color="#00BFFF" style={{ marginRight: 8 }} />
-                            <TouchableOpacity onPress={() => toggleExpandVisit(visit.id)}>
-                              <Ionicons name={expandedVisits[visit.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
-                            </TouchableOpacity>
-                            <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(visit.customerId)}</Text>
+                        <View key={visit.id} style={{ flexDirection: 'column', width: '100%' }}>
+                          <View style={styles.visitItem}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <Text style={styles.taskCount}>{visit.tasks.length} task{visit.tasks.length !== 1 ? 's' : ''}</Text>
-                              <TouchableOpacity
-                                style={{ marginLeft: 8 }}
-                                onPress={() => {
-                                  Alert.alert(
-                                    'Mark Complete',
-                                    'Are you sure you want to mark this pool visit as complete?',
-                                    [
-                                      { text: 'Cancel', style: 'cancel' },
-                                      { text: 'Yes', style: 'default', onPress: async () => { await markPoolVisitCompleted(visit.id); } }
-                                    ]
-                                  );
-                                }}
-                              >
-                                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                              <Ionicons name="water" size={18} color="#00BFFF" style={{ marginRight: 8 }} />
+                              <TouchableOpacity onPress={() => toggleExpandVisit(visit.id)}>
+                                <Ionicons name={expandedVisits[visit.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
+                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(visit.customerId)}</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={styles.taskCount}>{visit.tasks.length} task{visit.tasks.length !== 1 ? 's' : ''}</Text>
+                                <TouchableOpacity
+                                  style={{ marginLeft: 8 }}
+                                  onPress={() => {
+                                    Alert.alert(
+                                      'Mark Complete',
+                                      'Are you sure you want to mark this pool visit as complete?',
+                                      [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        { text: 'Yes', style: 'default', onPress: async () => { await markPoolVisitCompleted(visit.id); } }
+                                      ]
+                                    );
+                                  }}
+                                >
+                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           </View>
                           {expandedVisits[visit.id] && (
-                            <View style={{ paddingLeft: 40, paddingTop: 4, alignItems: 'flex-start' }}>
+                            <View style={{ alignSelf: 'stretch', paddingLeft: 34, paddingRight: 16, paddingTop: 4 }}>
                               {visit.tasks.map((task, idx) => (
                                 <Text key={idx} style={styles.taskText}>{task}</Text>
                               ))}
@@ -248,34 +250,36 @@ const ScheduleScreen = () => {
                         </View>
                       ))}
                       {dayTodos.map((todo, todoIndex) => (
-                        <View key={todo.id} style={styles.visitItem}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="alert-circle-outline" size={18} color="#FFA500" style={{ marginRight: 8 }} />
-                            <TouchableOpacity onPress={() => toggleExpandTodo(todo.id)}>
-                              <Ionicons name={expandedTodos[todo.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
-                            </TouchableOpacity>
-                            <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(todo.customerId)}</Text>
+                        <View key={todo.id} style={{ flexDirection: 'column', width: '100%' }}>
+                          <View style={styles.visitItem}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <Text style={styles.taskCount}>{todo.items && todo.items.length} to do item{todo.items && todo.items.length !== 1 ? 's' : ''}</Text>
-                              <TouchableOpacity
-                                style={{ marginLeft: 8 }}
-                                onPress={() => {
-                                  Alert.alert(
-                                    'Mark Complete',
-                                    'Are you sure you want to mark this to-do item as complete?',
-                                    [
-                                      { text: 'Cancel', style: 'cancel' },
-                                      { text: 'Yes', style: 'default', onPress: async () => { await markTodoCompleted(todo.id); } }
-                                    ]
-                                  );
-                                }}
-                              >
-                                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                              <Ionicons name="alert-circle-outline" size={18} color="#FFA500" style={{ marginRight: 8 }} />
+                              <TouchableOpacity onPress={() => toggleExpandTodo(todo.id)}>
+                                <Ionicons name={expandedTodos[todo.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
+                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(todo.customerId)}</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={styles.taskCount}>{todo.items && todo.items.length} to do item{todo.items && todo.items.length !== 1 ? 's' : ''}</Text>
+                                <TouchableOpacity
+                                  style={{ marginLeft: 8 }}
+                                  onPress={() => {
+                                    Alert.alert(
+                                      'Mark Complete',
+                                      'Are you sure you want to mark this to-do item as complete?',
+                                      [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        { text: 'Yes', style: 'default', onPress: async () => { await markTodoCompleted(todo.id); } }
+                                      ]
+                                    );
+                                  }}
+                                >
+                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           </View>
                           {expandedTodos[todo.id] && todo.items && (
-                            <View style={{ paddingLeft: 40, paddingTop: 4, alignItems: 'flex-start' }}>
+                            <View style={{ alignSelf: 'stretch', paddingLeft: 34, paddingRight: 16, paddingTop: 4 }}>
                               {todo.items.map((item, idx) => (
                                 <Text key={idx} style={styles.taskText}>{item}</Text>
                               ))}
