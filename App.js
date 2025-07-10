@@ -36,6 +36,14 @@ import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const AuthStack = createStackNavigator();
+
+const AuthNavigator = () => (
+  <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStack.Screen name="Auth" component={AuthScreen} />
+    <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+  </AuthStack.Navigator>
+);
 
 // Main app tabs navigator
 const MainTabs = () => {
@@ -220,11 +228,6 @@ const RootNavigator = () => {
           headerBackTitle: 'Back',
         }}
       />
-      <Stack.Screen 
-        name="ForgotPassword" 
-        component={ForgotPasswordScreen}
-        options={{ headerShown: false }}
-      />
     </Stack.Navigator>
   );
 };
@@ -258,7 +261,7 @@ export default function App() {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <NavigationContainer>
-          {user ? <RootNavigator /> : <AuthScreen />}
+          {user ? <RootNavigator /> : <AuthNavigator />}
         </NavigationContainer>
         <StatusBar style="auto" />
       </SafeAreaProvider>

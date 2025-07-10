@@ -207,15 +207,19 @@ const MapScreen = () => {
             />
           ))}
           {/* To-Do markers (red, for this week only) */}
-          {todosThisWeek.filter(todo => todo.latitude && todo.longitude).map(todo => (
-            <Marker
-              key={todo.id + '_todo'}
-              coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
-              pinColor="#FF0000"
-              title={todo.title || 'To-Do'}
-              description={todo.address || ''}
-            />
-          ))}
+          {todosThisWeek.filter(todo => todo.latitude && todo.longitude).map(todo => {
+            const customer = customers.find(c => c.id === todo.customerId);
+            if (!customer) return null;
+            return (
+              <Marker
+                key={todo.id + '_todo'}
+                coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
+                pinColor="#FF0000"
+                title={customer.name}
+                description={customer.address || `${customer.street}, ${customer.city}, ${customer.state} ${customer.zip}`}
+              />
+            );
+          })}
         </MapView>
         {/* Empty State Overlay */}
         {customers.length === 0 && (

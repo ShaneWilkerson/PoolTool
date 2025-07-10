@@ -262,12 +262,32 @@ const BillingScreen = ({ navigation }) => {
                 <Text style={{ color: '#00BFFF', fontWeight: 'bold' }}>View Billing</Text>
               </TouchableOpacity>
               {owes && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                  <Text style={{ color: '#F44336', fontWeight: 'bold', marginRight: 12 }}>
-                    Owes: ${amountOwed.toFixed(2)}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={{
+                      color: '#F44336',
+                      fontWeight: '600',
+                      fontSize: 13,
+                      backgroundColor: '#fdecea',
+                      borderRadius: 8,
+                      paddingVertical: 2,
+                      paddingHorizontal: 8,
+                      marginRight: 8,
+                      overflow: 'hidden',
+                    }}>
+                      Owes: ${amountOwed.toFixed(2)}
+                    </Text>
+                  </View>
                   <TouchableOpacity
-                    style={styles.markPaidButton}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: '#e3f2fd',
+                      borderRadius: 8,
+                      paddingVertical: 4,
+                      paddingHorizontal: 10,
+                      marginLeft: 8,
+                    }}
                     onPress={() => {
                       Alert.alert(
                         'Mark as Paid',
@@ -285,8 +305,8 @@ const BillingScreen = ({ navigation }) => {
                       );
                     }}
                   >
-                    <Ionicons name="checkmark-done" size={18} color="#4CAF50" />
-                    <Text style={styles.markPaidButtonText}>Mark Paid</Text>
+                    <Ionicons name="checkmark-done" size={16} color="#4CAF50" />
+                    <Text style={{ color: '#4CAF50', fontWeight: 'bold', marginLeft: 4, fontSize: 13 }}>Mark Paid</Text>
                   </TouchableOpacity>
                 </View>
               )}
