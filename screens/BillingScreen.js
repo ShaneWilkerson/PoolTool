@@ -384,7 +384,7 @@ const BillingScreen = ({ navigation }) => {
                 onPress={() => setExpandedReceipt(expandedReceipt === expense.id ? null : expense.id)}
               >
                 <View>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{getCustomerName(expense.customerId)}</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{expense.customerName || getCustomerName(expense.customerId)}</Text>
                   <Text style={{ color: '#666', fontSize: 14 }}>{d.toString() !== 'Invalid Date' ? format(d, 'MMM d, yyyy') : 'No date'}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>

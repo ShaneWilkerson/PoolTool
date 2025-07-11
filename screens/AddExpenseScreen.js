@@ -72,6 +72,8 @@ const AddExpenseScreen = ({ navigation }) => {
     try {
       await addExpense({
         customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        customerEmail: selectedCustomer.email,
         items: items.filter(i => i.trim()),
         amount: parseFloat(amount),
         supplyStore,
