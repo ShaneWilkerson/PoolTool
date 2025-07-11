@@ -26,7 +26,10 @@ const CustomerListScreen = ({ navigation }) => {
       }
     };
     fetchCustomers();
-  }, []);
+    // Re-fetch customers when coming back to this screen
+    const unsubscribe = navigation.addListener('focus', fetchCustomers);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {

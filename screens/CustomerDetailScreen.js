@@ -7,9 +7,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { softDeleteCustomer } from '../src/firestoreLogic';
 import BillingStatus from '../src/BillingStatus';
@@ -18,6 +19,9 @@ const CustomerDetailScreen = ({ navigation, route }) => {
   const { customerId } = route.params;
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -45,6 +49,13 @@ const CustomerDetailScreen = ({ navigation, route }) => {
     };
     fetchCustomer();
   }, [customerId, navigation]);
+
+  useEffect(() => {
+    if (customer) {
+      setEditEmail(customer.email || '');
+      setEditPhone(customer.phone || '');
+    }
+  }, [customer]);
 
   const handleDeleteCustomer = async () => {
     Alert.alert(
@@ -114,15 +125,40 @@ const CustomerDetailScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Information</Text>
           <View style={styles.infoCard}>
+            {/* Edit button at top right */}
+            {!editing && (
+              <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }} onPress={() => setEditing(true)}>
+                <Ionicons name="create-outline" size={22} color="#00BFFF" />
+              </TouchableOpacity>
+            )}
             <View style={styles.infoRow}>
               <Ionicons name="mail" size={20} color="#666" />
               <Text style={styles.infoLabel}>Email:</Text>
-              <Text style={styles.infoValue}>{customer.email}</Text>
+              {editing ? (
+                <TextInput
+                  style={[styles.infoValue, { borderBottomWidth: 1, borderColor: '#e1e5e9', flex: 1 }]}
+                  value={editEmail}
+                  onChangeText={setEditEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{customer.email}</Text>
+              )}
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="call" size={20} color="#666" />
               <Text style={styles.infoLabel}>Phone:</Text>
-              <Text style={styles.infoValue}>{customer.phone}</Text>
+              {editing ? (
+                <TextInput
+                  style={[styles.infoValue, { borderBottomWidth: 1, borderColor: '#e1e5e9', flex: 1 }]}
+                  value={editPhone}
+                  onChangeText={setEditPhone}
+                  keyboardType="phone-pad"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{customer.phone}</Text>
+              )}
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="location" size={20} color="#666" />
@@ -140,6 +176,34 @@ const CustomerDetailScreen = ({ navigation, route }) => {
           <BillingStatus customerId={customer.id} />
         </View>
       </ScrollView>
+      {/* Save Changes button at bottom if editing */}
+      {editing && (
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#00BFFF',
+            borderRadius: 12,
+            padding: 16,
+            alignItems: 'center',
+            marginTop: 24,
+            marginBottom: 24,
+          }}
+          onPress={async () => {
+            try {
+              await updateDoc(doc(db, 'customers', customer.id), {
+                email: editEmail,
+                phone: editPhone,
+              });
+              setCustomer({ ...customer, email: editEmail, phone: editPhone });
+              setEditing(false);
+              Alert.alert('Success', 'Customer info updated.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to update customer info.');
+            }
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Save Changes</Text>
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         style={{
           backgroundColor: '#FF3B30',
