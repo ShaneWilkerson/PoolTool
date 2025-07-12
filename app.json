@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "PoolTracker",
-    "slug": "pooltracker",
+    "name": "ThePoolTool",
+    "slug": "thepooltool",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,17 +16,18 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pooltracker.app"
+      "bundleIdentifier": "com.thepooltool.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00BFFF"
       },
-      "package": "com.pooltracker.app",
+      "package": "com.thepooltool.app",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -34,21 +35,19 @@
     },
     "plugins": [
       [
-        "expo-location",
+        "expo-image-picker",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow PoolTracker to use your location to show nearby pools and provide navigation."
+          "photosPermission": "Allow this app to access your photos to attach receipts to expenses.",
+          "cameraPermission": "Allow this app to use your camera to take receipt photos."
         }
       ]
     ],
-    "plugins": [
-  [
-    "expo-image-picker",
-    {
-      "photosPermission": "Allow this app to access your photos to attach receipts to expenses.",
-      "cameraPermission": "Allow this app to use your camera to take receipt photos."
-    }
-  ]
-], 
-    "sdkVersion": "52.0.0"
+    "sdkVersion": "52.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "789e435b-307b-4266-bcf3-9711d8c1cbc2"
+      }
+    },
+    "owner": "shanewilkerson"
   }
-} 
+}

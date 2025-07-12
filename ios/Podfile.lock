@@ -1286,7 +1286,7 @@ PODS:
     - Yoga
   - react-native-get-random-values (1.11.0):
     - React-Core
-  - react-native-maps (1.17.1):
+  - react-native-maps (1.7.1):
     - React-Core
   - react-native-pager-view (6.2.3):
     - DoubleConversion
@@ -1971,7 +1971,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: b288fcce9c939b37940cff7a8fbdce0bc23b5cfa
   React-microtasksnativemodule: 0c9e9656e7bad934d4077aad2890eacda905d7db
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
-  react-native-maps: 524eb03f06da14a5501aef4874f1e1d7120e598e
+  react-native-maps: 38394e3f4258d7fe8f1241c2624b91acf35e2dd5
   react-native-pager-view: f8375c01d7e0945faa3e71d607da1bbd40bd472e
   react-native-safe-area-context: bf9d9d58f0f6726d4a6257088044c2595017579d
   React-nativeconfig: 72c10ff34863148ef90df9c9c8eacba99d2faaaa

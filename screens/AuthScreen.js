@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { 
@@ -131,8 +132,8 @@ const AuthScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Ionicons name="water" size={80} color="#00BFFF" />
-            <Text style={styles.title}>PoolTracker</Text>
+            <Image source={require('../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 12 }} />
+            <Text style={styles.title}>ThePoolTool</Text>
             <Text style={styles.subtitle}>
               {isSignUp ? 'Create your account' : 'Welcome back'}
             </Text>

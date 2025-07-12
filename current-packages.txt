@@ -1,0 +1,26 @@
+thepooltool@1.0.0 /Users/shanewilkerson/Downloads/PoolTracker
+├── UNMET DEPENDENCY @babel/core@^7.20.0
+├── UNMET DEPENDENCY @react-native-async-storage/async-storage@^1.24.0
+├── UNMET DEPENDENCY @react-navigation/bottom-tabs@^6.5.11
+├── UNMET DEPENDENCY @react-navigation/native@^6.1.9
+├── UNMET DEPENDENCY @react-navigation/stack@^6.3.20
+├── UNMET DEPENDENCY date-fns@^4.1.0
+├── UNMET DEPENDENCY expo-image-picker@^16.1.4
+├── UNMET DEPENDENCY expo-location@~18.0.0
+├── UNMET DEPENDENCY expo-status-bar@~2.0.0
+├── UNMET DEPENDENCY expo@~52.0.0
+├── UNMET DEPENDENCY firebase@^11.10.0
+├── UNMET DEPENDENCY react-native-gesture-handler@~2.14.0
+├── UNMET DEPENDENCY react-native-get-random-values@^1.11.0
+├── UNMET DEPENDENCY react-native-google-places-autocomplete@^2.5.7
+├── UNMET DEPENDENCY react-native-keyboard-aware-scroll-view@^0.9.5
+├── UNMET DEPENDENCY react-native-maps@^1.17.1
+├── UNMET DEPENDENCY react-native-pager-view@6.2.3
+├── UNMET DEPENDENCY react-native-reanimated@~3.6.2
+├── UNMET DEPENDENCY react-native-safe-area-context@4.8.2
+├── UNMET DEPENDENCY react-native-screens@~3.29.0
+├── UNMET DEPENDENCY react-native-vector-icons@^10.0.3
+├── UNMET DEPENDENCY react-native@0.76.0
+├── UNMET DEPENDENCY react@18.2.0
+└── UNMET DEPENDENCY victory-native@^36.9.1
+

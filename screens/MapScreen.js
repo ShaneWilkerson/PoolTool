@@ -187,7 +187,7 @@ const MapScreen = () => {
             );
           })}
           {/* All pools (dark blue) */}
-          {showAllPools && customers.filter(c => c.latitude && c.longitude).map(pool => (
+          {showAllPools && customers.filter(c => c.latitude && c.longitude && c.archived !== true && c.deleted !== true && c.isActive !== false).map(pool => (
             <Marker
               key={pool.id + '_all'}
               coordinate={{ latitude: pool.latitude, longitude: pool.longitude }}

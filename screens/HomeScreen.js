@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, updatePoolVisitOrder, updateTodoOrder, markTodoCompleted } from '../src/firestoreLogic';
@@ -181,7 +182,10 @@ const HomeScreen = ({ navigation }) => {
         {/* Header with today's date */}
         <View style={styles.header}>
           <Text style={styles.dateText}>{dateString}</Text>
-          <Text style={styles.welcomeText}>Welcome to PoolTracker!</Text>
+          {/* Remove the logo/image from the Home screen. Only show the welcome text. */}
+          <View style={{ alignItems: 'center', marginBottom: 24 }}>
+            <Text style={styles.welcomeText}>Welcome to ThePoolTool!</Text>
+          </View>
         </View>
 
         {/* Today's Tasks Section */}
