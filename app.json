@@ -43,11 +43,11 @@
       ]
     ],
     "sdkVersion": "52.0.0",
+    "owner": "shanewilkerson",
     "extra": {
       "eas": {
-        "projectId": "789e435b-307b-4266-bcf3-9711d8c1cbc2"
+        "projectId": "76f24647-722f-4ed8-a5be-bcec10308a4b"
       }
-    },
-    "owner": "shanewilkerson"
+    }
   }
 }
