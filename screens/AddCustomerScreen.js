@@ -5,8 +5,9 @@ import { addCustomer } from '../src/firestoreLogic';
 import { MaterialIcons } from '@expo/vector-icons';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
+import { GOOGLE_API_KEY } from '@env';
 
-const GOOGLE_PLACES_API_KEY = Constants.expoConfig.extra.googlePlacesApiKey;
+const GOOGLE_PLACES_API_KEY = GOOGLE_API_KEY;
 
 const AddCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');

@@ -6,8 +6,9 @@ import { addSupplyStore } from '../src/firestoreLogic';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { auth } from '../firebase';
 import Constants from 'expo-constants';
+import { GOOGLE_API_KEY } from '@env';
 
-const GOOGLE_PLACES_API_KEY = Constants.expoConfig.extra.googlePlacesApiKey;
+const GOOGLE_PLACES_API_KEY = GOOGLE_API_KEY;
 
 const AddSupplyStoreScreen = ({ navigation }) => {
   const [name, setName] = useState('');

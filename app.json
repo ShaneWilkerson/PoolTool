@@ -47,17 +47,6 @@
       ]
     ],
     "sdkVersion": "52.0.0",
-    "owner": "shanewilkerson",
-    "extra": {
-      "firebase": {
-        "apiKey": "AIzaSyDiEzrpfPekEL3ulD70tiVLs6EN6lA4DUI",
-        "authDomain": "pooltracker-87e13.firebaseapp.com",
-        "projectId": "pooltracker-87e13",
-        "storageBucket": "pooltracker-87e13.firebasestorage.app",
-        "messagingSenderId": "385220361172",
-        "appId": "1:385220361172:web:0257b388bdcddfca44f441"
-      },
-      "googlePlacesApiKey": "AIzaSyBeI_DblGaK_-LUnA3R5O6JC92u6TRtIZA"
-    }
+    "owner": "shanewilkerson"
   }
 }
