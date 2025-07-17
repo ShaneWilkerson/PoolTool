@@ -4,8 +4,9 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { addCustomer } from '../src/firestoreLogic';
 import { MaterialIcons } from '@expo/vector-icons';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Constants from 'expo-constants';
 
-const GOOGLE_PLACES_API_KEY = 'AIzaSyC7qnlKrxqcMSZSdHv6NPQBJxuM2fCbhYU'; // My own key
+const GOOGLE_PLACES_API_KEY = Constants.expoConfig.extra.googlePlacesApiKey;
 
 const AddCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');

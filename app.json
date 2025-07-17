@@ -16,7 +16,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thepooltool.app"
+      "icon": "./assets/icon.png",
+      "bundleIdentifier": "com.thepooltool.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to let you mark and view pool locations on the map for scheduling and service tracking."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,9 +49,15 @@
     "sdkVersion": "52.0.0",
     "owner": "shanewilkerson",
     "extra": {
-      "eas": {
-        "projectId": "76f24647-722f-4ed8-a5be-bcec10308a4b"
-      }
+      "firebase": {
+        "apiKey": "AIzaSyDiEzrpfPekEL3ulD70tiVLs6EN6lA4DUI",
+        "authDomain": "pooltracker-87e13.firebaseapp.com",
+        "projectId": "pooltracker-87e13",
+        "storageBucket": "pooltracker-87e13.firebasestorage.app",
+        "messagingSenderId": "385220361172",
+        "appId": "1:385220361172:web:0257b388bdcddfca44f441"
+      },
+      "googlePlacesApiKey": "AIzaSyBeI_DblGaK_-LUnA3R5O6JC92u6TRtIZA"
     }
   }
 }

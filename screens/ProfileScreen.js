@@ -16,9 +16,10 @@ import {
   updateEmail, 
   updatePassword,
   reauthenticateWithCredential,
-  EmailAuthProvider 
+  EmailAuthProvider,
+  deleteUser
 } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const ProfileScreen = ({ navigation }) => {
@@ -30,6 +31,8 @@ const ProfileScreen = ({ navigation }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -134,6 +137,78 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      Alert.alert('Error', 'Please enter your password to confirm account deletion');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Re-authenticate user before deleting account
+      const credential = EmailAuthProvider.credential(user.email, deletePassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Delete all user data from Firestore
+      const userId = user.uid;
+      
+      // Delete user document
+      await deleteDoc(doc(db, 'users', userId));
+      
+      // Delete all customers associated with this user
+      const customersQuery = query(collection(db, 'customers'), where('userId', '==', userId));
+      const customersSnapshot = await getDocs(customersQuery);
+      const customerDeletions = customersSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(customerDeletions);
+      
+      // Delete all pool visits associated with this user
+      const visitsQuery = query(collection(db, 'poolVisits'), where('userId', '==', userId));
+      const visitsSnapshot = await getDocs(visitsQuery);
+      const visitDeletions = visitsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(visitDeletions);
+      
+      // Delete all expenses associated with this user
+      const expensesQuery = query(collection(db, 'expenses'), where('userId', '==', userId));
+      const expensesSnapshot = await getDocs(expensesQuery);
+      const expenseDeletions = expensesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(expenseDeletions);
+      
+      // Delete all invoices associated with this user
+      const invoicesQuery = query(collection(db, 'invoices'), where('userId', '==', userId));
+      const invoicesSnapshot = await getDocs(invoicesQuery);
+      const invoiceDeletions = invoicesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(invoiceDeletions);
+      
+      // Delete all to-dos associated with this user
+      const todosQuery = query(collection(db, 'todos'), where('userId', '==', userId));
+      const todosSnapshot = await getDocs(todosQuery);
+      const todoDeletions = todosSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(todoDeletions);
+      
+      // Delete all supply stores associated with this user
+      const storesQuery = query(collection(db, 'supplyStores'), where('userId', '==', userId));
+      const storesSnapshot = await getDocs(storesQuery);
+      const storeDeletions = storesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(storeDeletions);
+      
+      // Finally, delete the Firebase Auth account
+      await deleteUser(user);
+      
+      Alert.alert('Account Deleted', 'Your account and all associated data have been permanently deleted.');
+    } catch (error) {
+      if (error.code === 'auth/wrong-password') {
+        Alert.alert('Error', 'Password is incorrect');
+      } else {
+        Alert.alert('Error', 'Failed to delete account. Please try again.');
+        console.error('Delete account error:', error);
+      }
+    } finally {
+      setLoading(false);
+      setShowDeleteAccountModal(false);
+      setDeletePassword('');
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return 'U';
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
@@ -196,6 +271,31 @@ const ProfileScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+
+        {/* Delete Account Button */}
+        <TouchableOpacity 
+          style={styles.deleteAccountButton} 
+          onPress={() => {
+            Alert.alert(
+              'Delete Account',
+              'Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including customers, pool visits, expenses, invoices, and todos.',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+                {
+                  text: 'Delete Account',
+                  style: 'destructive',
+                  onPress: () => setShowDeleteAccountModal(true),
+                },
+              ]
+            );
+          }}
+        >
+          <Ionicons name="trash-outline" size={24} color="white" />
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -281,6 +381,49 @@ const ProfileScreen = ({ navigation }) => {
               >
                 <Text style={styles.modalButtonTextPrimary}>
                   {loading ? 'Updating...' : 'Update'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={showDeleteAccountModal}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Account</Text>
+            <Text style={styles.modalWarning}>
+              This action cannot be undone. All your data including customers, pool visits, expenses, invoices, and todos will be permanently deleted.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter your password to confirm"
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              secureTextEntry
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  setShowDeleteAccountModal(false);
+                  setDeletePassword('');
+                }}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDanger]}
+                onPress={handleDeleteAccount}
+                disabled={loading}
+              >
+                <Text style={styles.modalButtonTextDanger}>
+                  {loading ? 'Deleting...' : 'Delete Account'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -382,6 +525,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
   },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B0000',
+    margin: 16,
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+  },
+  deleteAccountText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -401,6 +560,13 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 20,
     textAlign: 'center',
+  },
+  modalWarning: {
+    fontSize: 14,
+    color: '#8B0000',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   modalInput: {
     backgroundColor: '#f8f9fa',
@@ -425,11 +591,19 @@ const styles = StyleSheet.create({
   modalButtonPrimary: {
     backgroundColor: '#00BFFF',
   },
+  modalButtonDanger: {
+    backgroundColor: '#8B0000',
+  },
   modalButtonText: {
     fontSize: 16,
     color: '#666',
   },
   modalButtonTextPrimary: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
+  },
+  modalButtonTextDanger: {
     fontSize: 16,
     color: 'white',
     fontWeight: '600',

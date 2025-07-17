@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { addSupplyStore } from '../src/firestoreLogic';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import { auth } from '../firebase';
+import Constants from 'expo-constants';
 
-const GOOGLE_PLACES_API_KEY = 'AIzaSyC7qnlKrxqcMSZSdHv6NPQBJxuM2fCbhYU';
+const GOOGLE_PLACES_API_KEY = Constants.expoConfig.extra.googlePlacesApiKey;
 
 const AddSupplyStoreScreen = ({ navigation }) => {
   const [name, setName] = useState('');

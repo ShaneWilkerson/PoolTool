@@ -3,16 +3,10 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getStorage } from 'firebase/storage';
+import Constants from 'expo-constants';
 
 // Firebase project configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDiEzrpfPekEL3ulD70tiVLs6EN6lA4DUI",
-  authDomain: "pooltracker-87e13.firebaseapp.com",
-  projectId: "pooltracker-87e13",
-  storageBucket: "pooltracker-87e13.firebasestorage.app",
-  messagingSenderId: "385220361172",
-  appId: "1:385220361172:web:0257b388bdcddfca44f441"
-};
+const firebaseConfig = Constants.expoConfig.extra.firebase;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
