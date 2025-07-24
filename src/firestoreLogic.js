@@ -11,28 +11,38 @@ export const addAccount = async (accountData) => {
 
 // CUSTOMERS
 export const addCustomer = async (customerData) => {
-  // Get all customers to find the max simpleId
-  const customersRef = collection(db, 'customers');
-  const snapshot = await getDocs(customersRef);
-  let maxId = 999;
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    if (data.simpleId && !isNaN(Number(data.simpleId))) {
-      maxId = Math.max(maxId, Number(data.simpleId));
+  try {
+    if (!db || !auth || !auth.currentUser) {
+      console.warn('Firebase not available or user not authenticated');
+      throw new Error('Firebase not available or user not authenticated');
     }
-  });
-  const newSimpleId = (maxId + 1).toString();
-  const docRef = await addDoc(customersRef, {
-    ...customerData,
-    accountId: auth.currentUser.uid,
-    billingStatus: 'unpaid',
-    dueDate: null,
-    invoiceId: null,
-    isActive: true,
-    simpleId: newSimpleId,
-  });
-  const newDoc = await getDocs(query(customersRef, where('simpleId', '==', newSimpleId)));
-  return newDoc.docs.length > 0 ? { id: newDoc.docs[0].id, ...newDoc.docs[0].data() } : null;
+    
+    // Get all customers to find the max simpleId
+    const customersRef = collection(db, 'customers');
+    const snapshot = await getDocs(customersRef);
+    let maxId = 999;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.simpleId && !isNaN(Number(data.simpleId))) {
+        maxId = Math.max(maxId, Number(data.simpleId));
+      }
+    });
+    const newSimpleId = (maxId + 1).toString();
+    const docRef = await addDoc(customersRef, {
+      ...customerData,
+      accountId: auth.currentUser.uid,
+      billingStatus: 'unpaid',
+      dueDate: null,
+      invoiceId: null,
+      isActive: true,
+      simpleId: newSimpleId,
+    });
+    const newDoc = await getDocs(query(customersRef, where('simpleId', '==', newSimpleId)));
+    return newDoc.docs.length > 0 ? { id: newDoc.docs[0].id, ...newDoc.docs[0].data() } : null;
+  } catch (error) {
+    console.error('Error adding customer:', error);
+    throw error;
+  }
 };
 export const softDeleteCustomer = async (customerId) => {
   await updateDoc(doc(db, 'customers', customerId), {
@@ -41,13 +51,22 @@ export const softDeleteCustomer = async (customerId) => {
   });
 };
 export const getCustomersForAccount = async (accountId) => {
-  const q = query(
-    collection(db, 'customers'),
-    where('accountId', '==', accountId),
-    where('isActive', 'in', [true, null]) // null for legacy docs
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    if (!db) {
+      console.warn('Firestore not available');
+      return [];
+    }
+    const q = query(
+      collection(db, 'customers'),
+      where('accountId', '==', accountId),
+      where('isActive', 'in', [true, null]) // null for legacy docs
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    return [];
+  }
 };
 
 // TASKS

@@ -26,16 +26,28 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
+        if (!auth || !auth.currentUser) {
+          console.warn('User not authenticated');
+          setLoading(false);
+          return;
+        }
         const customersData = await getCustomersForAccount(auth.currentUser.uid);
         setCustomers(customersData);
       } catch (error) {
         console.error('Error fetching customers:', error);
+        setLoading(false);
       }
     };
     fetchCustomers();
   }, []);
 
   useEffect(() => {
+    if (!auth || !auth.currentUser || !db) {
+      console.warn('Firebase not available or user not authenticated');
+      setLoading(false);
+      return;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -50,11 +62,19 @@ const HomeScreen = ({ navigation }) => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setPoolVisits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
+    }, (error) => {
+      console.error('Error fetching pool visits:', error);
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   useEffect(() => {
+    if (!auth || !auth.currentUser || !db) {
+      console.warn('Firebase not available or user not authenticated');
+      return;
+    }
+
     const unsubscribe = onSnapshot(
       query(
         collection(db, 'todos'),
@@ -63,12 +83,20 @@ const HomeScreen = ({ navigation }) => {
       ),
       (snapshot) => {
         setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (error) => {
+        console.error('Error fetching todos:', error);
       }
     );
     return unsubscribe;
   }, []);
 
   useEffect(() => {
+    if (!auth || !auth.currentUser || !db) {
+      console.warn('Firebase not available or user not authenticated');
+      return;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -82,11 +110,18 @@ const HomeScreen = ({ navigation }) => {
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setCompletedToday(snapshot.size);
+    }, (error) => {
+      console.error('Error fetching completed visits:', error);
     });
     return unsubscribe;
   }, []);
 
   useEffect(() => {
+    if (!auth || !auth.currentUser || !db) {
+      console.warn('Firebase not available or user not authenticated');
+      return;
+    }
+
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
@@ -103,6 +138,8 @@ const HomeScreen = ({ navigation }) => {
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setTodosThisWeek(snapshot.size);
+    }, (error) => {
+      console.error('Error fetching weekly todos:', error);
     });
     return unsubscribe;
   }, []);

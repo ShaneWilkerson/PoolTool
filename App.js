@@ -33,6 +33,7 @@ import AccountBillingScreen from './screens/AccountBillingScreen';
 import AddSupplyStoreScreen from './screens/AddSupplyStoreScreen';
 import ViewSupplyStoresScreen from './screens/ViewSupplyStoresScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import CustomerPickerScreen from './screens/CustomerPickerScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -227,6 +228,11 @@ const RootNavigator = () => {
           headerTitleStyle: { fontWeight: 'bold' },
           headerBackTitle: 'Back',
         }}
+      />
+      <Stack.Screen 
+        name="CustomerPicker" 
+        component={CustomerPickerScreen}
+        options={{ title: 'Select Customer' }}
       />
     </Stack.Navigator>
   );

@@ -9,10 +9,13 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, addTodo } from '../src/firestoreLogic';
 import { auth } from '../firebase';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import SelectedCustomerBox from '../src/SelectedCustomerBox';
 
 const getWeekDays = (weekStart) => {
   const days = [];
@@ -24,10 +27,15 @@ const getWeekDays = (weekStart) => {
   return days;
 };
 
-const AddToDoScreen = ({ navigation }) => {
+const AddToDoScreen = ({ navigation, route }) => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(route.params?.selectedCustomer || null);
+  useEffect(() => {
+    if (route.params?.selectedCustomer) {
+      setSelectedCustomer(route.params.selectedCustomer);
+    }
+  }, [route.params?.selectedCustomer]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWeekStart, setSelectedWeekStart] = useState(() => {
     const today = new Date();
@@ -174,38 +182,25 @@ const AddToDoScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Add To-do Item</Text>
         {/* Customer Search */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Customer</Text>
-          <TextInput
-            ref={inputRef}
-            style={styles.searchInput}
-            placeholder="Search for customer..."
-            value={searchQuery}
-            onChangeText={text => {
-              setSearchQuery(text);
-              setSelectedCustomer(null);
-            }}
-            onFocus={showDropdown}
-            autoCapitalize="words"
-          />
-          {selectedCustomer && (
-            <View style={styles.selectedCustomer}>
-              <Text style={styles.selectedCustomerText}>
-                Selected: {selectedCustomer.name}
-              </Text>
-              <TouchableOpacity
-                style={styles.changeCustomerButton}
-                onPress={() => {
-                  setSelectedCustomer(null);
-                  setSearchQuery('');
-                }}
-              >
-                <Text style={styles.changeCustomerText}>Change</Text>
-              </TouchableOpacity>
-            </View>
+          {!selectedCustomer ? (
+            <TouchableOpacity onPress={() => navigation.navigate('CustomerPicker', { onSelectScreen: 'AddToDo' })}>
+              <View style={[styles.searchInput, { justifyContent: 'center', minHeight: 48 }]}>
+                <Text style={{ color: '#aaa' }}>Tap to select customer...</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <SelectedCustomerBox
+              customer={selectedCustomer}
+              onChange={() => {
+                setSelectedCustomer(null);
+                navigation.navigate('CustomerPicker', { onSelectScreen: 'AddToDo' });
+              }}
+            />
           )}
         </View>
         {/* Date Selector */}
@@ -275,6 +270,8 @@ const AddToDoScreen = ({ navigation }) => {
                 placeholder={`To-do Item ${index + 1}`}
                 value={item}
                 onChangeText={(value) => updateTodoItem(index, value)}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
               {todoItems.length > 1 && (
                 <TouchableOpacity
@@ -306,7 +303,7 @@ const AddToDoScreen = ({ navigation }) => {
             {loading ? 'Adding...' : 'Add to To-do List'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
       {/* Dropdown Overlay (not Modal, not portal) */}
       {dropdownVisible && (
         <View style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 9999 }} pointerEvents="box-none">

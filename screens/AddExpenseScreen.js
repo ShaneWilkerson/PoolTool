@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from 'react-native';
 import { addExpense, getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
 import SelectedCustomerBox from '../src/SelectedCustomerBox';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-const AddExpenseScreen = ({ navigation }) => {
+const AddExpenseScreen = ({ navigation, route }) => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(route.params?.selectedCustomer || null);
+  useEffect(() => {
+    if (route.params?.selectedCustomer) {
+      setSelectedCustomer(route.params.selectedCustomer);
+    }
+  }, [route.params?.selectedCustomer]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const inputRef = useRef(null);
@@ -105,59 +111,52 @@ const AddExpenseScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Add Expense</Text>
-          <Text style={styles.label}>Customer</Text>
-          <View style={{ position: 'relative' }}>
-            {!selectedCustomer && (
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                placeholder="Search for customer..."
-                value={customerSearch}
-                onChangeText={text => {
-                  setCustomerSearch(text);
-                  setSelectedCustomer(null);
-                }}
-                onFocus={showDropdown}
-                autoCapitalize="none"
-              />
-            )}
-            {selectedCustomer && (
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Add Expense</Text>
+        <Text style={styles.label}>Customer</Text>
+        <View style={{ position: 'relative' }}>
+          {!selectedCustomer ? (
+            <TouchableOpacity onPress={() => navigation.navigate('CustomerPicker', { onSelectScreen: 'AddExpense' })}>
+              <View style={[styles.input, { justifyContent: 'center', minHeight: 48 }]}>
+                <Text style={{ color: '#aaa' }}>Tap to select customer...</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ marginBottom: 16 }}>
               <SelectedCustomerBox
                 customer={selectedCustomer}
                 onChange={() => {
                   setSelectedCustomer(null);
-                  setCustomerSearch('');
+                  navigation.navigate('CustomerPicker', { onSelectScreen: 'AddExpense' });
                 }}
               />
-            )}
-          </View>
-          <Text style={styles.label}>Items</Text>
-          {items.map((item, idx) => (
-            <TextInput
-              key={idx}
-              style={styles.input}
-              placeholder={`Item ${idx + 1}`}
-              value={item}
-              onChangeText={text => handleItemChange(text, idx)}
-              onSubmitEditing={handleAddItem}
-              returnKeyType="done"
-            />
-          ))}
-          <TouchableOpacity style={styles.addItemButton} onPress={handleAddItem}>
-            <Text style={styles.addItemButtonText}>+ Add item</Text>
-          </TouchableOpacity>
-          <Text style={styles.label}>Amount</Text>
-          <TextInput style={styles.input} placeholder="Total Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-          <Text style={styles.label}>Supply Store</Text>
-          <TextInput style={styles.input} placeholder="Supply Store" value={supplyStore} onChangeText={setSupplyStore} />
-          <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleAddExpense} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add Expense'}</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+            </View>
+          )}
+        </View>
+        <Text style={styles.label}>Items</Text>
+        {items.map((item, idx) => (
+          <TextInput
+            key={idx}
+            style={styles.input}
+            placeholder={`Item ${idx + 1}`}
+            value={item}
+            onChangeText={text => handleItemChange(text, idx)}
+            onSubmitEditing={handleAddItem}
+            returnKeyType="done"
+            onEndEditing={Keyboard.dismiss}
+          />
+        ))}
+        <TouchableOpacity style={styles.addItemButton} onPress={handleAddItem}>
+          <Text style={styles.addItemButtonText}>+ Add item</Text>
+        </TouchableOpacity>
+        <Text style={styles.label}>Amount</Text>
+        <TextInput style={styles.input} placeholder="Total Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+        <Text style={styles.label}>Supply Store</Text>
+        <TextInput style={styles.input} placeholder="Supply Store" value={supplyStore} onChangeText={setSupplyStore} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleAddExpense} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add Expense'}</Text>
+        </TouchableOpacity>
+      </KeyboardAwareScrollView>
       {/* Dropdown Overlay (not Modal, not portal) */}
       {dropdownVisible && (
         <View style={{ position: 'absolute', top: dropdownPosition.top, left: dropdownPosition.left, width: dropdownPosition.width, zIndex: 9999 }} pointerEvents="box-none">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   Image,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { 
@@ -20,7 +21,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { testFirebaseConnection } from '../FirebaseTest';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const AuthScreen = ({ navigation }) => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -29,16 +30,13 @@ const AuthScreen = ({ navigation }) => {
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // Test Firebase connection when component mounts
-    testFirebaseConnection();
-  }, []);
-
   const handleAuth = async () => {
     if (!email || !password || (isSignUp && !companyName)) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+
+
 
     setLoading(true);
     console.log('Starting authentication process...');
@@ -125,96 +123,91 @@ const AuthScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Image source={require('../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 12 }} />
-            <Text style={styles.title}>ThePoolTool</Text>
-            <Text style={styles.subtitle}>
-              {isSignUp ? 'Create your account' : 'Welcome back'}
-            </Text>
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        {/* Header */}
+        <View style={styles.header}>
+          <Image source={require('../assets/icon.png')} style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 12 }} />
+          <Text style={styles.title}>ThePoolTool</Text>
+          <Text style={styles.subtitle}>
+            {isSignUp ? 'Create your account' : 'Welcome back'}
+          </Text>
+        </View>
+        {/* Form */}
+        <View style={styles.form}>
+          {isSignUp && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Pool Company Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your company name"
+                value={companyName}
+                onChangeText={setCompanyName}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
+            </View>
+          )}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
           </View>
-
-          {/* Form */}
-          <View style={styles.form}>
-            {isSignUp && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Pool Company Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your company name"
-                  value={companyName}
-                  onChangeText={setCompanyName}
-                  autoCapitalize="words"
-                />
-              </View>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
+          </View>
+          <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+            {!isSignUp && (
+              <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                <Text style={{ color: '#00BFFF', fontWeight: '600' }}>Forgot password?</Text>
+              </TouchableOpacity>
             )}
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
-              {!isSignUp && (
-                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                  <Text style={{ color: '#00BFFF', fontWeight: '600' }}>Forgot password?</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleAuth}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Toggle between sign in and sign up */}
-            <TouchableOpacity
-              style={styles.toggleButton}
-              onPress={() => {
-                setIsSignUp(!isSignUp);
-                setEmail('');
-                setPassword('');
-                setCompanyName('');
-              }}
-            >
-              <Text style={styles.toggleText}>
-                {isSignUp 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Sign Up"
-                }
-              </Text>
-            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleAuth}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            </Text>
+          </TouchableOpacity>
+          {/* Toggle between sign in and sign up */}
+          <TouchableOpacity
+            style={styles.toggleButton}
+            onPress={() => {
+              setIsSignUp(!isSignUp);
+              setEmail('');
+              setPassword('');
+              setCompanyName('');
+            }}
+          >
+            <Text style={styles.toggleText}>
+              {isSignUp 
+                ? 'Already have an account? Sign In' 
+                : "Don't have an account? Sign Up"
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

@@ -13,6 +13,7 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
+    "connect": "^3.7.0",
     "date-fns": "^4.1.0",
     "expo": "~52.0.0",
     "expo-constants": "~17.0.8",
@@ -37,7 +38,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@babel/plugin-transform-template-literals": "^7.27.1"
+    "@babel/plugin-transform-template-literals": "^7.27.1",
+    "@react-native-community/cli": "^19.1.0",
+    "@react-native/metro-config": "^0.80.1",
+    "metro": "^0.82.5",
+    "metro-config": "^0.82.5"
   },
   "private": true,
   "expo": {

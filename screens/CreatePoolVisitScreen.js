@@ -19,6 +19,7 @@ import { getCustomersForAccount, addPoolVisit } from '../src/firestoreLogic';
 import { auth } from '../firebase';
 import SelectedCustomerBox from '../src/SelectedCustomerBox';
 import DateSelector from '../src/DateSelector';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Helper to get days in the selected week
 const getWeekDays = (weekStart) => {
@@ -215,7 +216,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create Pool Visit</Text>
 
         {/* Customer Search */}
@@ -233,6 +234,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
               }}
               onFocus={showDropdown}
               autoCapitalize="words"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
             />
           )}
           {selectedCustomer && (
@@ -267,6 +270,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 placeholder={`Task ${index + 1}`}
                 value={task}
                 onChangeText={(value) => updateTask(index, value)}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
               {tasks.length > 1 && (
                 <TouchableOpacity
@@ -300,7 +305,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
             {loading ? 'Creating...' : 'Create Pool Visit'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Dropdown Overlay (not Modal) */}
       {dropdownVisible && (

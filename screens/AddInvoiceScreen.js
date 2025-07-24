@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, Pressable, Keyboard } from 'react-native';
 import { addInvoice, getCustomersForAccount } from '../src/firestoreLogic';
 import { auth } from '../firebase';
 import SelectedCustomerBox from '../src/SelectedCustomerBox';
 import DateSelector from '../src/DateSelector';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-const AddInvoiceScreen = ({ navigation }) => {
+const AddInvoiceScreen = ({ navigation, route }) => {
   const [customerId, setCustomerId] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(route.params?.selectedCustomer || null);
+  useEffect(() => {
+    if (route.params?.selectedCustomer) {
+      setSelectedCustomer(route.params.selectedCustomer);
+    }
+  }, [route.params?.selectedCustomer]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [services, setServices] = useState('');
@@ -117,36 +123,30 @@ const AddInvoiceScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container} onLayout={e => setRootLayout(e.nativeEvent.layout)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>New Invoice</Text>
           <Text style={styles.label}>Customer</Text>
           <View style={{ position: 'relative' }}>
-            {!selectedCustomer && (
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                placeholder="Search for customer..."
-                value={customerSearch}
-                onChangeText={text => {
-                  setCustomerSearch(text);
-                  setSelectedCustomer(null);
-                }}
-                onFocus={showDropdown}
-                autoCapitalize="none"
-              />
-            )}
-            {selectedCustomer && (
-              <SelectedCustomerBox
-                customer={selectedCustomer}
-                onChange={() => {
-                  setSelectedCustomer(null);
-                  setCustomerSearch('');
-                }}
-              />
+            {!selectedCustomer ? (
+              <TouchableOpacity onPress={() => navigation.navigate('CustomerPicker', { onSelectScreen: 'AddInvoice' })}>
+                <View style={[styles.input, { justifyContent: 'center', minHeight: 48 }]}>
+                  <Text style={{ color: '#aaa' }}>Tap to select customer...</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ marginBottom: 16 }}>
+                <SelectedCustomerBox
+                  customer={selectedCustomer}
+                  onChange={() => {
+                    setSelectedCustomer(null);
+                    navigation.navigate('CustomerPicker', { onSelectScreen: 'AddInvoice' });
+                  }}
+                />
+              </View>
             )}
           </View>
-          <TextInput style={styles.input} placeholder="Services (comma separated)" value={services} onChangeText={setServices} />
-          <TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Services (comma separated)" value={services} onChangeText={setServices} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
           <Text style={styles.label}>Due Date</Text>
           <DateSelector
             selectedWeekStart={selectedWeekStart}
@@ -157,7 +157,7 @@ const AddInvoiceScreen = ({ navigation }) => {
           <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleAddInvoice} disabled={loading}>
             <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add Invoice'}</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
       {/* Dropdown Overlay (not Modal, not portal) */}
       {dropdownVisible && (

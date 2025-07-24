@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, Modal, Keyboard } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { addCustomer } from '../src/firestoreLogic';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -47,13 +47,12 @@ const AddCustomerScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-        <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>Add Customer</Text>
           {/* Section 1: Basic Info */}
-          <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} autoCapitalize="words" />
-          <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-          <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} autoCapitalize="words" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
           {/* Section 2: Address */}
           <Text style={styles.sectionHeader}>Address</Text>
           <TouchableOpacity style={styles.input} onPress={() => setModalVisible(true)}>
@@ -102,7 +101,6 @@ const AddCustomerScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>{loading ? 'Adding...' : 'Add Customer'}</Text>
           </TouchableOpacity>
         </KeyboardAwareScrollView>
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
