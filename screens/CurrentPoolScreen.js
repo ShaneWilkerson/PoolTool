@@ -29,11 +29,7 @@ const CurrentPoolScreen = () => {
       }
     };
     fetchCustomers();
-    
-    // Add focus listener to refresh customers when screen comes into focus
-    const unsubscribe = navigation.addListener('focus', fetchCustomers);
-    return unsubscribe;
-  }, [navigation]);
+  }, []);
 
   useEffect(() => {
     const today = new Date();
@@ -136,6 +132,25 @@ const CurrentPoolScreen = () => {
                   </View>
                 ))}
               </View>
+              
+              {/* Pool Details Section */}
+              {(() => {
+                const customer = customers.find(c => c.id === firstVisit.customerId);
+                if (customer && customer.poolDetails && customer.poolDetails.length > 0) {
+                  return (
+                    <View style={styles.poolDetailsContainer}>
+                      <Text style={styles.poolDetailsTitle}>Pool Details:</Text>
+                      {customer.poolDetails.map((detail, index) => (
+                        <View key={index} style={styles.poolDetailItem}>
+                          <Text style={styles.bulletPoint}>•</Text>
+                          <Text style={styles.poolDetailText}>{detail}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                }
+                return null;
+              })()}
             </View>
           </View>
         )}
@@ -251,6 +266,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginLeft: 8,
+    flex: 1,
+  },
+  poolDetailsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  poolDetailsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  poolDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  bulletPoint: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 8,
+  },
+  poolDetailText: {
+    fontSize: 14,
+    color: '#666',
     flex: 1,
   },
 });

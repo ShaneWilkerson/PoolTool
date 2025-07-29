@@ -48,6 +48,10 @@ const CustomerDetailScreen = ({ navigation, route }) => {
       }
     };
     fetchCustomer();
+    
+    // Add focus listener to refresh customer data when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', fetchCustomer);
+    return unsubscribe;
   }, [customerId, navigation]);
 
   useEffect(() => {
@@ -167,6 +171,39 @@ const CustomerDetailScreen = ({ navigation, route }) => {
                 {customer.fullAddress || customer.address || [customer.street, customer.city, customer.state, customer.zip].filter(Boolean).join(', ')}
               </Text>
             </View>
+          </View>
+        </View>
+
+        {/* Pool Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Pool Details</Text>
+          <View style={styles.infoCard}>
+            {!customer.poolDetails || customer.poolDetails.length === 0 ? (
+              <TouchableOpacity
+                style={styles.addPoolDetailsButton}
+                onPress={() => navigation.navigate('PoolDetails', { customerId: customer.id })}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="#00BFFF" />
+                <Text style={styles.addPoolDetailsText}>Add Pool Details</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                <TouchableOpacity 
+                  style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}
+                  onPress={() => navigation.navigate('PoolDetails', { customerId: customer.id })}
+                >
+                  <Ionicons name="create-outline" size={22} color="#00BFFF" />
+                </TouchableOpacity>
+                <View style={styles.poolDetailsList}>
+                  {customer.poolDetails.map((detail, index) => (
+                    <View key={index} style={styles.poolDetailItem}>
+                      <Text style={styles.bulletPoint}>•</Text>
+                      <Text style={styles.poolDetailText}>{detail}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -358,6 +395,39 @@ const styles = StyleSheet.create({
     color: '#00BFFF',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  addPoolDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  addPoolDetailsText: {
+    fontSize: 16,
+    color: '#00BFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  poolDetailsList: {
+    marginTop: 12,
+  },
+  poolDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bulletPoint: {
+    fontSize: 18,
+    color: '#00BFFF',
+    marginRight: 8,
+  },
+  poolDetailText: {
+    fontSize: 14,
+    color: '#1a1a1a',
   },
 });
 

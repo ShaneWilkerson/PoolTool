@@ -103,6 +103,22 @@ const CustomerListScreen = ({ navigation }) => {
                 {item.billingStatus || 'unpaid'}
               </Text>
             </View>
+            {item.poolDetails && item.poolDetails.length > 0 && (
+              <>
+                <View style={styles.detailRow}>
+                  <Ionicons name="water" size={16} color="#666" />
+                  <Text style={styles.detailLabel}>Pool Details:</Text>
+                </View>
+                <View style={styles.poolDetailsContainer}>
+                  {item.poolDetails.map((detail, index) => (
+                    <View key={index} style={styles.poolDetailItem}>
+                      <Text style={styles.bulletPoint}>•</Text>
+                      <Text style={styles.poolDetailText}>{detail}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
           </View>
         )}
       </View>
@@ -312,6 +328,27 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  poolDetailsContainer: {
+    marginTop: 4,
+    marginLeft: 24,
+  },
+  poolDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  bulletPoint: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 8,
+    marginTop: 2,
+  },
+  poolDetailText: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    flex: 1,
+    lineHeight: 20,
   },
 });
 

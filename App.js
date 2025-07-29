@@ -34,6 +34,7 @@ import AddSupplyStoreScreen from './screens/AddSupplyStoreScreen';
 import ViewSupplyStoresScreen from './screens/ViewSupplyStoresScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import CustomerPickerScreen from './screens/CustomerPickerScreen';
+import PoolDetailsScreen from './screens/PoolDetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -233,6 +234,17 @@ const RootNavigator = () => {
         name="CustomerPicker" 
         component={CustomerPickerScreen}
         options={{ title: 'Select Customer' }}
+      />
+      <Stack.Screen 
+        name="PoolDetails" 
+        component={PoolDetailsScreen}
+        options={{
+          title: 'Pool Details',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
       />
     </Stack.Navigator>
   );
