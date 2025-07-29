@@ -29,7 +29,11 @@ const CurrentPoolScreen = () => {
       }
     };
     fetchCustomers();
-  }, []);
+    
+    // Add focus listener to refresh customers when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', fetchCustomers);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     const today = new Date();
@@ -50,15 +54,20 @@ const CurrentPoolScreen = () => {
     return unsubscribe;
   }, []);
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
+  const getCustomerName = (poolVisit) => {
+    // If the pool visit has the customer name stored, use it
+    if (poolVisit.customerName) {
+      return poolVisit.customerName;
+    }
+    // Fall back to looking up the customer by ID
+    const customer = customers.find(c => c.id === poolVisit.customerId);
     return customer ? customer.name : 'Unknown Customer';
   };
 
   const handleCompletePoolVisit = async (poolVisit) => {
     Alert.alert(
       'Complete Pool Visit',
-      `Are you sure you completed this pool visit for ${getCustomerName(poolVisit.customerId)}?`,
+      `Are you sure you completed this pool visit for ${getCustomerName(poolVisit)}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -108,7 +117,7 @@ const CurrentPoolScreen = () => {
             <View key={firstVisit.id} style={styles.visitCard}>
               <View style={styles.visitHeader}>
                 <View style={styles.visitInfo}>
-                  <Text style={styles.customerName}>{getCustomerName(firstVisit.customerId)}</Text>
+                  <Text style={styles.customerName}>{getCustomerName(firstVisit)}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.markCompleteButton}

@@ -144,8 +144,13 @@ const HomeScreen = ({ navigation }) => {
     return unsubscribe;
   }, []);
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
+  const getCustomerName = (visit) => {
+    // If the visit has the customer name stored, use it
+    if (visit.customerName) {
+      return visit.customerName;
+    }
+    // Fall back to looking up the customer by ID
+    const customer = customers.find(c => c.id === visit.customerId);
     return customer ? customer.name : 'Unknown Customer';
   };
 
@@ -243,7 +248,7 @@ const HomeScreen = ({ navigation }) => {
                   <View key={visit.id} style={styles.taskCard}>
                     <View style={styles.taskHeader}>
                       <Text style={styles.taskNumber}>#{index + 1}</Text>
-                      <Text style={styles.customerName}>{getCustomerName(visit.customerId)}</Text>
+                      <Text style={styles.customerName}>{getCustomerName(visit)}</Text>
                       <View style={{ flex: 1 }} />
                       {/* Up Arrow */}
                       <TouchableOpacity
@@ -317,7 +322,7 @@ const HomeScreen = ({ navigation }) => {
                   <View key={todo.id} style={styles.taskCard}>
                     <View style={styles.taskHeader}>
                       <Text style={styles.taskNumber}>#{index + 1}</Text>
-                      <Text style={styles.customerName}>{getCustomerName(todo.customerId)}</Text>
+                      <Text style={styles.customerName}>{getCustomerName(todo)}</Text>
                       <View style={{ flex: 1 }} />
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <TouchableOpacity

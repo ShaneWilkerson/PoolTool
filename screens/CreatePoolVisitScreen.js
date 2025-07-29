@@ -84,7 +84,11 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       }
     };
     fetchCustomers();
-  }, []);
+    
+    // Add focus listener to refresh customers when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', fetchCustomers);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -184,6 +188,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     try {
       await addPoolVisit({
         customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        customerEmail: selectedCustomer.email,
         scheduledDate: selectedDay,
         tasks: validTasks,
       });

@@ -35,7 +35,11 @@ const AddExpenseScreen = ({ navigation, route }) => {
       }
     };
     fetchCustomers();
-  }, []);
+    
+    // Add focus listener to refresh customers when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', fetchCustomers);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     if (customerSearch.trim() === '') {

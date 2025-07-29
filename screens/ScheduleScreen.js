@@ -32,7 +32,11 @@ const ScheduleScreen = () => {
       }
     };
     fetchCustomers();
-  }, []);
+    
+    // Add focus listener to refresh customers when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', fetchCustomers);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     // Listen for pool visits for the current week
@@ -114,8 +118,13 @@ const ScheduleScreen = () => {
     return dateString === today;
   };
 
-  const getCustomerName = (customerId) => {
-    const customer = customers.find(c => c.id === customerId);
+  const getCustomerName = (visit) => {
+    // If the visit has the customer name stored, use it
+    if (visit.customerName) {
+      return visit.customerName;
+    }
+    // Fall back to looking up the customer by ID
+    const customer = customers.find(c => c.id === visit.customerId);
     return customer ? customer.name : 'Unknown Customer';
   };
 
@@ -219,7 +228,7 @@ const ScheduleScreen = () => {
                               <TouchableOpacity onPress={() => toggleExpandVisit(visit.id)}>
                                 <Ionicons name={expandedVisits[visit.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
-                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(visit.customerId)}</Text>
+                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(visit)}</Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Text style={styles.taskCount}>{visit.tasks.length} task{visit.tasks.length !== 1 ? 's' : ''}</Text>
                                 <TouchableOpacity
@@ -257,7 +266,7 @@ const ScheduleScreen = () => {
                               <TouchableOpacity onPress={() => toggleExpandTodo(todo.id)}>
                                 <Ionicons name={expandedTodos[todo.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
-                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(todo.customerId)}</Text>
+                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(todo)}</Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Text style={styles.taskCount}>{todo.items && todo.items.length} to do item{todo.items && todo.items.length !== 1 ? 's' : ''}</Text>
                                 <TouchableOpacity
