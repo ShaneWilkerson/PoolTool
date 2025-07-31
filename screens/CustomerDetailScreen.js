@@ -207,6 +207,18 @@ const CustomerDetailScreen = ({ navigation, route }) => {
           </View>
         </View>
 
+        {/* Customer History */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => navigation.navigate('CustomerHistory', { customerId: customer.id })}
+          >
+            <Ionicons name="time" size={24} color="#00BFFF" />
+            <Text style={styles.historyButtonText}>View Customer History</Text>
+            <Ionicons name="chevron-forward" size={20} color="#00BFFF" />
+          </TouchableOpacity>
+        </View>
+
         {/* Billing Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Billing Status</Text>
@@ -428,6 +440,21 @@ const styles = StyleSheet.create({
   poolDetailText: {
     fontSize: 14,
     color: '#1a1a1a',
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+  },
+  historyButtonText: {
+    fontSize: 16,
+    color: '#00BFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
 

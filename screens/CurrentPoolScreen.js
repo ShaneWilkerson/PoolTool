@@ -14,7 +14,7 @@ import { getPoolVisitsForDate, markPoolVisitCompleted, getCustomersForAccount } 
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-const CurrentPoolScreen = () => {
+const CurrentPoolScreen = ({ navigation }) => {
   const [poolVisits, setPoolVisits] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +151,16 @@ const CurrentPoolScreen = () => {
                 }
                 return null;
               })()}
+              
+              {/* Customer History Button */}
+              <TouchableOpacity
+                style={styles.historyButton}
+                onPress={() => navigation.navigate('CustomerHistory', { customerId: firstVisit.customerId })}
+              >
+                <Ionicons name="time" size={20} color="#00BFFF" />
+                <Text style={styles.historyButtonText}>View Customer History</Text>
+                <Ionicons name="chevron-forward" size={16} color="#00BFFF" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -293,6 +303,22 @@ const styles = StyleSheet.create({
   poolDetailText: {
     fontSize: 14,
     color: '#666',
+    flex: 1,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  historyButtonText: {
+    fontSize: 16,
+    color: '#00BFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
     flex: 1,
   },
 });

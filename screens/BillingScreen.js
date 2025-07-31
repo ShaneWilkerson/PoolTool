@@ -415,10 +415,16 @@ const BillingScreen = ({ navigation }) => {
 
   const renderExpensesTab = () => (
     <View>
-      {/* Add Expense Button */}
+      {/* Add Customer Expense Button */}
       <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('AddExpense')}>
         <Ionicons name="add-circle" size={20} color="#00BFFF" />
-        <Text style={styles.headerButtonText}>Add Expense</Text>
+        <Text style={styles.headerButtonText}>Add Customer Expense</Text>
+      </TouchableOpacity>
+      
+      {/* Add General Expense Button */}
+      <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('AddGeneralExpense')}>
+        <Ionicons name="add-circle" size={20} color="#00BFFF" />
+        <Text style={styles.headerButtonText}>Add General Expense</Text>
       </TouchableOpacity>
       {/* Filter by Month Dropdown */}
       <View style={{ marginBottom: 16 }}>

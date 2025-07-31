@@ -35,6 +35,8 @@ import ViewSupplyStoresScreen from './screens/ViewSupplyStoresScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import CustomerPickerScreen from './screens/CustomerPickerScreen';
 import PoolDetailsScreen from './screens/PoolDetailsScreen';
+import CustomerHistoryScreen from './screens/CustomerHistoryScreen';
+import AddGeneralExpenseScreen from './screens/AddGeneralExpenseScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -240,6 +242,28 @@ const RootNavigator = () => {
         component={PoolDetailsScreen}
         options={{
           title: 'Pool Details',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="CustomerHistory" 
+        component={CustomerHistoryScreen}
+        options={{
+          title: 'Customer History',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="AddGeneralExpense" 
+        component={AddGeneralExpenseScreen}
+        options={{
+          title: 'Add General Expense',
           headerStyle: { backgroundColor: '#00BFFF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
