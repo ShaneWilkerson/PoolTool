@@ -10,6 +10,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -152,11 +153,8 @@ const PoolDetailsScreen = ({ navigation, route }) => {
                   multiline
                   numberOfLines={2}
                   returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (index === poolDetails.length - 1) {
-                      addStep();
-                    }
-                  }}
+                  onSubmitEditing={Keyboard.dismiss}
+                  onEndEditing={Keyboard.dismiss}
                 />
               </View>
             ))}

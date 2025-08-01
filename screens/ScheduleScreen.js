@@ -9,11 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted } from '../src/firestoreLogic';
+import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted, markPoolVisitCompleted } from '../src/firestoreLogic';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-const ScheduleScreen = () => {
+const ScheduleScreen = ({ navigation }) => {
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [poolVisits, setPoolVisits] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -65,7 +65,6 @@ const ScheduleScreen = () => {
     const q = query(
       collection(db, 'todos'),
       where('accountId', '==', auth.currentUser.uid),
-      where('status', '==', 'pending'),
       where('date', '>=', start),
       where('date', '<=', end)
     );
@@ -126,7 +125,6 @@ const ScheduleScreen = () => {
 
   const getVisitsForDate = (date) => {
     return poolVisits.filter(visit => {
-      if (visit.completed) return false;
       let visitDate;
       if (visit.scheduledDate && typeof visit.scheduledDate.toDate === 'function') {
         visitDate = visit.scheduledDate.toDate();
@@ -218,30 +216,44 @@ const ScheduleScreen = () => {
                     <>
                       {dayVisits.map((visit, visitIndex) => (
                         <View key={visit.id} style={{ flexDirection: 'column', width: '100%' }}>
-                          <View style={styles.visitItem}>
+                          <View style={[styles.visitItem, visit.completed && styles.completedItem]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <Ionicons name="water" size={18} color="#00BFFF" style={{ marginRight: 8 }} />
+                              <Ionicons 
+                                name="water" 
+                                size={18} 
+                                color="#00BFFF" 
+                                style={{ marginRight: 8 }} 
+                              />
                               <TouchableOpacity onPress={() => toggleExpandVisit(visit.id)}>
                                 <Ionicons name={expandedVisits[visit.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
-                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(visit)}</Text>
+                              <Text style={[styles.customerName, { flex: 1 }]}>
+                                {getCustomerName(visit)}
+                              </Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.taskCount}>{visit.tasks.length} task{visit.tasks.length !== 1 ? 's' : ''}</Text>
-                                <TouchableOpacity
-                                  style={{ marginLeft: 8 }}
-                                  onPress={() => {
-                                    Alert.alert(
-                                      'Mark Complete',
-                                      'Are you sure you want to mark this pool visit as complete?',
-                                      [
-                                        { text: 'Cancel', style: 'cancel' },
-                                        { text: 'Yes', style: 'default', onPress: async () => { await markPoolVisitCompleted(visit.id); } }
-                                      ]
-                                    );
-                                  }}
-                                >
-                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                                </TouchableOpacity>
+                                <Text style={styles.taskCount}>
+                                  {visit.tasks.length} task{visit.tasks.length !== 1 ? 's' : ''}
+                                </Text>
+                                {!visit.completed && (
+                                  <TouchableOpacity
+                                    style={{ marginLeft: 8 }}
+                                    onPress={() => {
+                                      Alert.alert(
+                                        'Mark Complete',
+                                        'Are you sure you want to mark this pool visit as complete?',
+                                        [
+                                          { text: 'Cancel', style: 'cancel' },
+                                          { text: 'Yes', style: 'default', onPress: async () => { await markPoolVisitCompleted(visit.id); } }
+                                        ]
+                                      );
+                                    }}
+                                  >
+                                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                                  </TouchableOpacity>
+                                )}
+                                {visit.completed && (
+                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" style={{ marginLeft: 8 }} />
+                                )}
                               </View>
                             </View>
                           </View>
@@ -250,36 +262,58 @@ const ScheduleScreen = () => {
                               {visit.tasks.map((task, idx) => (
                                 <Text key={idx} style={styles.taskText}>{task}</Text>
                               ))}
+                              <TouchableOpacity
+                                style={styles.historyButton}
+                                onPress={() => navigation.navigate('CustomerHistory', { customerId: visit.customerId })}
+                              >
+                                <Ionicons name="time" size={16} color="#00BFFF" />
+                                <Text style={styles.historyButtonText}>Pool History</Text>
+                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                              </TouchableOpacity>
                             </View>
                           )}
                         </View>
                       ))}
                       {dayTodos.map((todo, todoIndex) => (
                         <View key={todo.id} style={{ flexDirection: 'column', width: '100%' }}>
-                          <View style={styles.visitItem}>
+                          <View style={[styles.visitItem, todo.status === 'completed' && styles.completedItem]}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <Ionicons name="alert-circle-outline" size={18} color="#FFA500" style={{ marginRight: 8 }} />
+                              <Ionicons 
+                                name="alert-circle-outline" 
+                                size={18} 
+                                color="#FFA500" 
+                                style={{ marginRight: 8 }} 
+                              />
                               <TouchableOpacity onPress={() => toggleExpandTodo(todo.id)}>
                                 <Ionicons name={expandedTodos[todo.id] ? 'chevron-up' : 'chevron-down'} size={18} color="#666" style={{ marginRight: 8 }} />
                               </TouchableOpacity>
-                              <Text style={[styles.customerName, { flex: 1 }]}>{getCustomerName(todo)}</Text>
+                              <Text style={[styles.customerName, { flex: 1 }]}>
+                                {getCustomerName(todo)}
+                              </Text>
                               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.taskCount}>{todo.items && todo.items.length} to do item{todo.items && todo.items.length !== 1 ? 's' : ''}</Text>
-                                <TouchableOpacity
-                                  style={{ marginLeft: 8 }}
-                                  onPress={() => {
-                                    Alert.alert(
-                                      'Mark Complete',
-                                      'Are you sure you want to mark this to-do item as complete?',
-                                      [
-                                        { text: 'Cancel', style: 'cancel' },
-                                        { text: 'Yes', style: 'default', onPress: async () => { await markTodoCompleted(todo.id); } }
-                                      ]
-                                    );
-                                  }}
-                                >
-                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                                </TouchableOpacity>
+                                <Text style={styles.taskCount}>
+                                  {todo.items && todo.items.length} to do item{todo.items && todo.items.length !== 1 ? 's' : ''}
+                                </Text>
+                                {todo.status !== 'completed' && (
+                                  <TouchableOpacity
+                                    style={{ marginLeft: 8 }}
+                                    onPress={() => {
+                                      Alert.alert(
+                                        'Mark Complete',
+                                        'Are you sure you want to mark this to-do item as complete?',
+                                        [
+                                          { text: 'Cancel', style: 'cancel' },
+                                          { text: 'Yes', style: 'default', onPress: async () => { await markTodoCompleted(todo.id); } }
+                                        ]
+                                      );
+                                    }}
+                                  >
+                                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                                  </TouchableOpacity>
+                                )}
+                                {todo.status === 'completed' && (
+                                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" style={{ marginLeft: 8 }} />
+                                )}
                               </View>
                             </View>
                           </View>
@@ -288,6 +322,14 @@ const ScheduleScreen = () => {
                               {todo.items.map((item, idx) => (
                                 <Text key={idx} style={styles.taskText}>{item}</Text>
                               ))}
+                              <TouchableOpacity
+                                style={styles.historyButton}
+                                onPress={() => navigation.navigate('CustomerHistory', { customerId: todo.customerId })}
+                              >
+                                <Ionicons name="time" size={16} color="#00BFFF" />
+                                <Text style={styles.historyButtonText}>Pool History</Text>
+                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                              </TouchableOpacity>
                             </View>
                           )}
                         </View>
@@ -436,6 +478,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  completedItem: {
+    opacity: 0.7,
+    backgroundColor: '#e8f5e9', // Light green background for completed items
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: '#999',
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#e0f7fa', // Light blue background
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  historyButtonText: {
+    fontSize: 14,
+    color: '#00BFFF',
+    marginLeft: 8,
+    marginRight: 8,
   },
 });
 
