@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import EditPoolVisitModal from '../src/EditPoolVisitModal';
+import EditTodoModal from '../src/EditTodoModal';
 
 const CustomerHistoryScreen = ({ navigation, route }) => {
   const { customerId } = route.params;
@@ -18,6 +20,10 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   const [completedPoolVisits, setCompletedPoolVisits] = useState([]);
   const [completedTodos, setCompletedTodos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showEditPoolVisitModal, setShowEditPoolVisitModal] = useState(false);
+  const [showEditTodoModal, setShowEditTodoModal] = useState(false);
+  const [selectedPoolVisit, setSelectedPoolVisit] = useState(null);
+  const [selectedTodo, setSelectedTodo] = useState(null);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -82,6 +88,52 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
     });
   };
 
+  const handleEditPoolVisit = (visit) => {
+    setSelectedPoolVisit(visit);
+    setShowEditPoolVisitModal(true);
+  };
+
+  const handleEditTodo = (todo) => {
+    setSelectedTodo(todo);
+    setShowEditTodoModal(true);
+  };
+
+  const handleSavePoolVisit = async () => {
+    // Refresh the data after saving
+    try {
+      // Fetch completed pool visits
+      const poolVisitsQuery = query(
+        collection(db, 'poolVisits'),
+        where('customerId', '==', customerId),
+        where('completed', '==', true),
+        orderBy('completedAt', 'desc')
+      );
+      const poolVisitsSnapshot = await getDocs(poolVisitsQuery);
+      const poolVisits = poolVisitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCompletedPoolVisits(poolVisits);
+    } catch (error) {
+      console.error('Error refreshing pool visits:', error);
+    }
+  };
+
+  const handleSaveTodo = async () => {
+    // Refresh the data after saving
+    try {
+      // Fetch completed todos
+      const todosQuery = query(
+        collection(db, 'todos'),
+        where('customerId', '==', customerId),
+        where('status', '==', 'completed'),
+        orderBy('completedAt', 'desc')
+      );
+      const todosSnapshot = await getDocs(todosQuery);
+      const todos = todosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCompletedTodos(todos);
+    } catch (error) {
+      console.error('Error refreshing todos:', error);
+    }
+  };
+
   const renderPoolVisit = (visit) => (
     <View key={visit.id} style={styles.historyItem}>
       <View style={styles.historyHeader}>
@@ -89,6 +141,12 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
         <Text style={styles.historyTitle}>Pool Visit</Text>
         <Text style={styles.historyDate}>{formatDate(visit.completedAt)}</Text>
       </View>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => handleEditPoolVisit(visit)}
+      >
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
       <View style={styles.tasksContainer}>
         {visit.tasks && visit.tasks.map((task, index) => (
           <View key={index} style={styles.taskItem}>
@@ -107,6 +165,12 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
         <Text style={styles.historyTitle}>To-Do Item</Text>
         <Text style={styles.historyDate}>{formatDate(todo.completedAt)}</Text>
       </View>
+      <TouchableOpacity
+        style={styles.editButton}
+        onPress={() => handleEditTodo(todo)}
+      >
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
       <View style={styles.todoContainer}>
         <Text style={styles.todoText}>{todo.description}</Text>
         {todo.items && todo.items.length > 0 && (
@@ -174,6 +238,27 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Edit Modals */}
+      <EditPoolVisitModal
+        visible={showEditPoolVisitModal}
+        poolVisit={selectedPoolVisit}
+        onClose={() => {
+          setShowEditPoolVisitModal(false);
+          setSelectedPoolVisit(null);
+        }}
+        onSave={handleSavePoolVisit}
+      />
+
+      <EditTodoModal
+        visible={showEditTodoModal}
+        todo={selectedTodo}
+        onClose={() => {
+          setShowEditTodoModal(false);
+          setSelectedTodo(null);
+        }}
+        onSave={handleSaveTodo}
+      />
     </SafeAreaView>
   );
 };
@@ -305,6 +390,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginLeft: 6,
+  },
+  editButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  editButtonText: {
+    color: '#00BFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -15,6 +15,35 @@ import { auth, db } from '../firebase';
 import * as Location from 'expo-location';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
+// Custom marker component for grouped items
+const GroupedMarker = ({ coordinate, items, onPress }) => {
+  const hasPoolVisit = items.some(item => item.type === 'poolVisit');
+  const hasTodo = items.some(item => item.type === 'todo');
+  
+  return (
+    <Marker coordinate={coordinate} onPress={onPress}>
+      <View style={styles.groupedMarkerContainer}>
+        {hasPoolVisit && (
+          <View style={styles.markerWrapper}>
+            <View style={[styles.markerPin, { backgroundColor: '#00BFFF' }]}>
+              <Ionicons name="water" size={12} color="white" />
+            </View>
+            <View style={[styles.markerPoint, { borderTopColor: '#00BFFF' }]} />
+          </View>
+        )}
+        {hasTodo && (
+          <View style={styles.markerWrapper}>
+            <View style={[styles.markerPin, { backgroundColor: '#FF0000' }]}>
+              <Ionicons name="alert-circle" size={12} color="white" />
+            </View>
+            <View style={[styles.markerPoint, { borderTopColor: '#FF0000' }]} />
+          </View>
+        )}
+      </View>
+    </Marker>
+  );
+};
+
 const MapScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [customers, setCustomers] = useState([]);
@@ -141,6 +170,51 @@ const MapScreen = () => {
     return customers.filter(pool => pool.status === selectedFilter);
   };
 
+  // Group items by location to handle overlapping markers
+  const getGroupedMarkers = () => {
+    const locationGroups = new Map();
+
+    // Add pool visits today
+    poolVisitsToday.forEach(visit => {
+      const customer = customers.find(c => c.id === visit.customerId);
+      if (!customer || !customer.latitude || !customer.longitude) return;
+      
+      const key = `${customer.latitude},${customer.longitude}`;
+      if (!locationGroups.has(key)) {
+        locationGroups.set(key, {
+          coordinate: { latitude: customer.latitude, longitude: customer.longitude },
+          items: []
+        });
+      }
+      locationGroups.get(key).items.push({
+        type: 'poolVisit',
+        data: visit,
+        customer: customer
+      });
+    });
+
+    // Add todos this week
+    todosThisWeek.forEach(todo => {
+      const customer = customers.find(c => c.id === todo.customerId);
+      if (!customer || !customer.latitude || !customer.longitude) return;
+      
+      const key = `${customer.latitude},${customer.longitude}`;
+      if (!locationGroups.has(key)) {
+        locationGroups.set(key, {
+          coordinate: { latitude: customer.latitude, longitude: customer.longitude },
+          items: []
+        });
+      }
+      locationGroups.get(key).items.push({
+        type: 'todo',
+        data: todo,
+        customer: customer
+      });
+    });
+
+    return Array.from(locationGroups.values());
+  };
+
   const initialRegion = {
     latitude: 37.7749,
     longitude: -122.4194,
@@ -172,20 +246,24 @@ const MapScreen = () => {
           {userLocation && (
             <Marker coordinate={userLocation} pinColor="#00BFFF" title="You are here" />
           )}
-          {/* Today's pool visits (light blue) */}
-          {poolVisitsToday.map(visit => {
-            const customer = customers.find(c => c.id === visit.customerId);
-            if (!customer || !customer.latitude || !customer.longitude) return null;
-            return (
-              <Marker
-                key={visit.id + '_today'}
-                coordinate={{ latitude: customer.latitude, longitude: customer.longitude }}
-                pinColor="#00BFFF"
-                title={customer.name}
-                description={customer.address || `${customer.street}, ${customer.city}, ${customer.state} ${customer.zip}`}
-              />
-            );
-          })}
+          {/* Grouped markers for pool visits and todos */}
+          {getGroupedMarkers().map((group, index) => (
+            <GroupedMarker
+              key={`group_${index}`}
+              coordinate={group.coordinate}
+              items={group.items}
+              onPress={() => {
+                const customer = group.items[0].customer;
+                Alert.alert(
+                  customer.name,
+                  `${group.items.length} item${group.items.length > 1 ? 's' : ''} at this location:\n` +
+                  group.items.map(item => 
+                    item.type === 'poolVisit' ? '• Pool Visit' : '• To-Do Item'
+                  ).join('\n')
+                );
+              }}
+            />
+          ))}
           {/* All pools (dark blue) */}
           {showAllPools && customers.filter(c => c.latitude && c.longitude && c.archived !== true && c.deleted !== true && c.isActive !== false).map(pool => (
             <Marker
@@ -206,20 +284,6 @@ const MapScreen = () => {
               description={store.address}
             />
           ))}
-          {/* To-Do markers (red, for this week only) */}
-          {todosThisWeek.filter(todo => todo.latitude && todo.longitude).map(todo => {
-            const customer = customers.find(c => c.id === todo.customerId);
-            if (!customer) return null;
-            return (
-              <Marker
-                key={todo.id + '_todo'}
-                coordinate={{ latitude: todo.latitude, longitude: todo.longitude }}
-                pinColor="#FF0000"
-                title={customer.name}
-                description={customer.address || `${customer.street}, ${customer.city}, ${customer.state} ${customer.zip}`}
-              />
-            );
-          })}
         </MapView>
         {/* Empty State Overlay */}
         {customers.length === 0 && (
@@ -314,6 +378,42 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  groupedMarkerContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  markerWrapper: {
+    alignItems: 'center',
+    marginHorizontal: 2,
+  },
+  markerPin: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  markerPoint: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -1,
   },
 });
 

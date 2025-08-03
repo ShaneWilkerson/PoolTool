@@ -11,7 +11,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted, markPoolVisitCompleted } from '../src/firestoreLogic';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import EditPoolVisitModal from '../src/EditPoolVisitModal';
+import EditTodoModal from '../src/EditTodoModal';
 
 const ScheduleScreen = ({ navigation }) => {
   const [selectedWeek, setSelectedWeek] = useState(0);
@@ -21,6 +23,10 @@ const ScheduleScreen = ({ navigation }) => {
   const [todos, setTodos] = useState([]);
   const [expandedVisits, setExpandedVisits] = useState({});
   const [expandedTodos, setExpandedTodos] = useState({});
+  const [showEditPoolVisitModal, setShowEditPoolVisitModal] = useState(false);
+  const [showEditTodoModal, setShowEditTodoModal] = useState(false);
+  const [selectedPoolVisit, setSelectedPoolVisit] = useState(null);
+  const [selectedTodo, setSelectedTodo] = useState(null);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -155,6 +161,59 @@ const ScheduleScreen = ({ navigation }) => {
     setExpandedTodos(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleEditPoolVisit = (visit) => {
+    setSelectedPoolVisit(visit);
+    setShowEditPoolVisitModal(true);
+  };
+
+  const handleEditTodo = (todo) => {
+    setSelectedTodo(todo);
+    setShowEditTodoModal(true);
+  };
+
+  const handleSavePoolVisit = async () => {
+    // Refresh the data after saving
+    try {
+      const weekDates = getWeekDates(selectedWeek);
+      const start = new Date(weekDates[0]);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(weekDates[6]);
+      end.setHours(23, 59, 59, 999);
+      const q = query(
+        collection(db, 'poolVisits'),
+        where('accountId', '==', auth.currentUser.uid),
+        where('scheduledDate', '>=', start),
+        where('scheduledDate', '<=', end)
+      );
+      const snapshot = await getDocs(q);
+      const allVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPoolVisits(allVisits);
+    } catch (error) {
+      console.error('Error refreshing pool visits:', error);
+    }
+  };
+
+  const handleSaveTodo = async () => {
+    // Refresh the data after saving
+    try {
+      const weekDates = getWeekDates(selectedWeek);
+      const start = new Date(weekDates[0]);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(weekDates[6]);
+      end.setHours(23, 59, 59, 999);
+      const q = query(
+        collection(db, 'todos'),
+        where('accountId', '==', auth.currentUser.uid),
+        where('date', '>=', start),
+        where('date', '<=', end)
+      );
+      const snapshot = await getDocs(q);
+      setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error('Error refreshing todos:', error);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -262,14 +321,23 @@ const ScheduleScreen = ({ navigation }) => {
                               {visit.tasks.map((task, idx) => (
                                 <Text key={idx} style={styles.taskText}>{task}</Text>
                               ))}
-                              <TouchableOpacity
-                                style={styles.historyButton}
-                                onPress={() => navigation.navigate('CustomerHistory', { customerId: visit.customerId })}
-                              >
-                                <Ionicons name="time" size={16} color="#00BFFF" />
-                                <Text style={styles.historyButtonText}>Pool History</Text>
-                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
-                              </TouchableOpacity>
+                              <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                  style={styles.editButton}
+                                  onPress={() => handleEditPoolVisit(visit)}
+                                >
+                                  <Ionicons name="create" size={16} color="#00BFFF" />
+                                  <Text style={styles.editButtonText}>Edit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.historyButton}
+                                  onPress={() => navigation.navigate('CustomerHistory', { customerId: visit.customerId })}
+                                >
+                                  <Ionicons name="time" size={16} color="#00BFFF" />
+                                  <Text style={styles.historyButtonText}>Pool History</Text>
+                                  <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           )}
                         </View>
@@ -322,14 +390,23 @@ const ScheduleScreen = ({ navigation }) => {
                               {todo.items.map((item, idx) => (
                                 <Text key={idx} style={styles.taskText}>{item}</Text>
                               ))}
-                              <TouchableOpacity
-                                style={styles.historyButton}
-                                onPress={() => navigation.navigate('CustomerHistory', { customerId: todo.customerId })}
-                              >
-                                <Ionicons name="time" size={16} color="#00BFFF" />
-                                <Text style={styles.historyButtonText}>Pool History</Text>
-                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
-                              </TouchableOpacity>
+                              <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                  style={styles.editButton}
+                                  onPress={() => handleEditTodo(todo)}
+                                >
+                                  <Ionicons name="create" size={16} color="#00BFFF" />
+                                  <Text style={styles.editButtonText}>Edit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.historyButton}
+                                  onPress={() => navigation.navigate('CustomerHistory', { customerId: todo.customerId })}
+                                >
+                                  <Ionicons name="time" size={16} color="#00BFFF" />
+                                  <Text style={styles.historyButtonText}>Pool History</Text>
+                                  <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           )}
                         </View>
@@ -342,6 +419,27 @@ const ScheduleScreen = ({ navigation }) => {
           })}
         </View>
       </ScrollView>
+
+      {/* Edit Modals */}
+      <EditPoolVisitModal
+        visible={showEditPoolVisitModal}
+        poolVisit={selectedPoolVisit}
+        onClose={() => {
+          setShowEditPoolVisitModal(false);
+          setSelectedPoolVisit(null);
+        }}
+        onSave={handleSavePoolVisit}
+      />
+
+      <EditTodoModal
+        visible={showEditTodoModal}
+        todo={selectedTodo}
+        onClose={() => {
+          setShowEditTodoModal(false);
+          setSelectedTodo(null);
+        }}
+        onSave={handleSaveTodo}
+      />
     </SafeAreaView>
   );
 };
@@ -475,9 +573,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   taskText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
     color: '#666',
-    marginTop: 2,
+    marginTop: 4,
   },
   completedItem: {
     opacity: 0.7,
@@ -491,17 +590,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     backgroundColor: '#e0f7fa', // Light blue background
     borderRadius: 8,
-    marginTop: 8,
+    flex: 1,
+    height: 40,
   },
   historyButtonText: {
     fontSize: 14,
     color: '#00BFFF',
     marginLeft: 8,
     marginRight: 8,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#e0f7fa',
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+    height: 40,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#00BFFF',
+    marginLeft: 4,
   },
 });
 

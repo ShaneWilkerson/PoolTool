@@ -12,7 +12,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomersForAccount, updatePoolVisitOrder, updateTodoOrder, markTodoCompleted } from '../src/firestoreLogic';
 import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import EditPoolVisitModal from '../src/EditPoolVisitModal';
+import EditTodoModal from '../src/EditTodoModal';
 
 const HomeScreen = ({ navigation }) => {
   const [customers, setCustomers] = useState([]);
@@ -22,6 +24,10 @@ const HomeScreen = ({ navigation }) => {
   const [showAddStore, setShowAddStore] = useState(false);
   const [completedToday, setCompletedToday] = useState(0);
   const [todosThisWeek, setTodosThisWeek] = useState(0);
+  const [showEditPoolVisitModal, setShowEditPoolVisitModal] = useState(false);
+  const [showEditTodoModal, setShowEditTodoModal] = useState(false);
+  const [selectedPoolVisit, setSelectedPoolVisit] = useState(null);
+  const [selectedTodo, setSelectedTodo] = useState(null);
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -154,6 +160,52 @@ const HomeScreen = ({ navigation }) => {
     return customer ? customer.name : 'Unknown Customer';
   };
 
+  const handleEditPoolVisit = (visit) => {
+    setSelectedPoolVisit(visit);
+    setShowEditPoolVisitModal(true);
+  };
+
+  const handleEditTodo = (todo) => {
+    setSelectedTodo(todo);
+    setShowEditTodoModal(true);
+  };
+
+  const handleSavePoolVisit = async () => {
+    // Refresh the data after saving
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const q = query(
+        collection(db, 'poolVisits'),
+        where('accountId', '==', auth.currentUser.uid),
+        where('scheduledDate', '>=', today),
+        where('scheduledDate', '<', tomorrow),
+        where('completed', '==', false)
+      );
+      const snapshot = await getDocs(q);
+      setPoolVisits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error('Error refreshing pool visits:', error);
+    }
+  };
+
+  const handleSaveTodo = async () => {
+    // Refresh the data after saving
+    try {
+      const q = query(
+        collection(db, 'todos'),
+        where('accountId', '==', auth.currentUser.uid),
+        where('status', '==', 'pending')
+      );
+      const snapshot = await getDocs(q);
+      setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error('Error refreshing todos:', error);
+    }
+  };
+
   // Get today's date
   const today = new Date();
   const dateString = today.toLocaleDateString('en-US', {
@@ -283,6 +335,12 @@ const HomeScreen = ({ navigation }) => {
                         <Ionicons name="arrow-down" size={20} color={index === arr.length - 1 ? '#ccc' : '#00BFFF'} />
                       </TouchableOpacity>
                       <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => handleEditPoolVisit(visit)}
+                      >
+                        <Ionicons name="create" size={16} color="#00BFFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         style={styles.viewButton}
                         onPress={() => navigation.navigate('CustomerDetail', { customerId: visit.customerId })}
                       >
@@ -325,6 +383,12 @@ const HomeScreen = ({ navigation }) => {
                       <Text style={styles.customerName}>{getCustomerName(todo)}</Text>
                       <View style={{ flex: 1 }} />
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => handleEditTodo(todo)}
+                        >
+                          <Ionicons name="create" size={16} color="#00BFFF" />
+                        </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.viewButton}
                           onPress={() => navigation.navigate('CustomerDetail', { customerId: todo.customerId })}
@@ -381,6 +445,27 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Edit Modals */}
+      <EditPoolVisitModal
+        visible={showEditPoolVisitModal}
+        poolVisit={selectedPoolVisit}
+        onClose={() => {
+          setShowEditPoolVisitModal(false);
+          setSelectedPoolVisit(null);
+        }}
+        onSave={handleSavePoolVisit}
+      />
+
+      <EditTodoModal
+        visible={showEditTodoModal}
+        todo={selectedTodo}
+        onClose={() => {
+          setShowEditTodoModal(false);
+          setSelectedTodo(null);
+        }}
+        onSave={handleSaveTodo}
+      />
     </SafeAreaView>
   );
 };
@@ -589,6 +674,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#00BFFF',
+  },
+  editButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 8,
   },
 });
 

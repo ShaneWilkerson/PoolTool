@@ -284,6 +284,20 @@ export const markTodoCompleted = async (todoId) => {
   });
 };
 
+export const updatePoolVisit = async (poolVisitId, updateData) => {
+  await updateDoc(doc(db, 'poolVisits', poolVisitId), {
+    ...updateData,
+    updatedAt: new Date(),
+  });
+};
+
+export const updateTodo = async (todoId, updateData) => {
+  await updateDoc(doc(db, 'todos', todoId), {
+    ...updateData,
+    updatedAt: new Date(),
+  });
+};
+
 export const getTodosForDate = async (accountId, date) => {
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
