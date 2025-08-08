@@ -30,10 +30,13 @@ const DateSelector = ({ selectedWeekStart, setSelectedWeekStart, selectedDay, se
   const changeWeek = (direction) => {
     const newStart = new Date(selectedWeekStart);
     newStart.setDate(newStart.getDate() + direction * 7);
-    // Limit to 6 months in advance, but allow going back to the initial week
+    // Allow navigating up to 6 months back and 6 months forward
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    if (newStart <= sixMonthsFromNow && newStart >= initialWeekStart) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    if (newStart <= sixMonthsFromNow && newStart >= sixMonthsAgo) {
       setSelectedWeekStart(newStart);
       setSelectedDay(null); // Do not auto-select any day when changing weeks
     }
@@ -61,11 +64,13 @@ const DateSelector = ({ selectedWeekStart, setSelectedWeekStart, selectedDay, se
           const isSelected = selectedDay && day.toDateString() === selectedDay.toDateString();
           // Only apply today style if not selected
           const isToday = !isSelected && day.toDateString() === todayDate.toDateString();
-          // Limit to 6 months in advance
+          // Allow selecting days up to 6 months in the past and 6 months in the future
           const sixMonthsFromNow = new Date();
           sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-          // Only allow selecting today or future days
-          const isDisabled = day < todayDate || day > sixMonthsFromNow;
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          sixMonthsAgo.setHours(0, 0, 0, 0);
+          const isDisabled = day < sixMonthsAgo || day > sixMonthsFromNow;
           return (
             <TouchableOpacity
               key={idx}

@@ -154,10 +154,13 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   const changeWeek = (direction) => {
     const newStart = new Date(selectedWeekStart);
     newStart.setDate(newStart.getDate() + direction * 7);
-    // Limit to 6 months in advance, but allow going back to the initial week
+    // Allow navigating up to 6 months back and 6 months forward
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    if (newStart <= sixMonthsFromNow && newStart >= initialWeekStart) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    if (newStart <= sixMonthsFromNow && newStart >= sixMonthsAgo) {
       setSelectedWeekStart(newStart);
       setSelectedDay(null); // Do not auto-select any day when changing weeks
     }
@@ -186,12 +189,19 @@ const CreatePoolVisitScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(selectedDay);
+      selected.setHours(0, 0, 0, 0);
+      const isPast = selected < today;
+
       await addPoolVisit({
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
         customerEmail: selectedCustomer.email,
         scheduledDate: selectedDay,
         tasks: validTasks,
+        ...(isPast ? { completed: true, completedAt: selected } : {}),
       });
       
       Alert.alert('Success', 'Pool visit created successfully', [

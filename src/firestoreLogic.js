@@ -175,30 +175,44 @@ export const markInvoicePaid = async (invoiceId, customerId, amount) => {
 
 // POOL VISITS
 export const addPoolVisit = async (poolVisitData) => {
-  // Get the current highest order for today's visits
+  // Determine if visit is for today and not completed to assign an order
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const q = query(
-    collection(db, 'poolVisits'),
-    where('accountId', '==', auth.currentUser.uid),
-    where('scheduledDate', '>=', today),
-    where('scheduledDate', '<', tomorrow),
-    where('completed', '==', false)
-  );
-  
-  const snapshot = await getDocs(q);
-  const nextOrder = snapshot.size + 1;
 
-  return await addDoc(collection(db, 'poolVisits'), {
+  const scheduledDate = poolVisitData?.scheduledDate instanceof Date
+    ? poolVisitData.scheduledDate
+    : new Date(poolVisitData?.scheduledDate);
+
+  const isTodayUncompleted =
+    scheduledDate && scheduledDate >= today && scheduledDate < tomorrow && !poolVisitData?.completed;
+
+  let nextOrder = null;
+  if (isTodayUncompleted) {
+    const q = query(
+      collection(db, 'poolVisits'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('scheduledDate', '>=', today),
+      where('scheduledDate', '<', tomorrow),
+      where('completed', '==', false)
+    );
+    const snapshot = await getDocs(q);
+    nextOrder = snapshot.size + 1;
+  }
+
+  const data = {
     ...poolVisitData,
     accountId: auth.currentUser.uid,
     createdAt: new Date(),
-    completed: false,
-    order: nextOrder,
-  });
+    completed: poolVisitData?.completed === true ? true : false,
+    ...(isTodayUncompleted ? { order: nextOrder } : {}),
+    ...(poolVisitData?.completed
+      ? { completedAt: poolVisitData.completedAt || scheduledDate || new Date() }
+      : {}),
+  };
+
+  return await addDoc(collection(db, 'poolVisits'), data);
 };
 
 export const getPoolVisitsForAccount = async (accountId) => {
