@@ -234,13 +234,21 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={{ marginTop: 32, marginBottom: 24 }}>
-          {/* Create Pool Visit (wide) */}
-          <TouchableOpacity style={[styles.menuButton, styles.menuButtonWide]} onPress={() => navigation.navigate('CreatePoolVisit')}>
-            <View style={styles.menuButtonContent}>
-              <Ionicons name="water" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.menuButtonText}>Create Pool Visit</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Row: Create Pool Visit & Recurring Visit */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('CreatePoolVisit')}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="water" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>Create Pool Visit</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginLeft: 8 }]} onPress={() => navigation.navigate('RecurringVisit')}>
+              <View style={styles.menuButtonContent}>
+                <Ionicons name="repeat" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.menuButtonText}>Recurring Visit</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
           {/* Row: Add to To-do List & View Customers */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('AddToDo')}>

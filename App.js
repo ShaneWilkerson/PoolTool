@@ -37,6 +37,7 @@ import CustomerPickerScreen from './screens/CustomerPickerScreen';
 import PoolDetailsScreen from './screens/PoolDetailsScreen';
 import CustomerHistoryScreen from './screens/CustomerHistoryScreen';
 import AddGeneralExpenseScreen from './screens/AddGeneralExpenseScreen';
+import RecurringVisitScreen from './screens/RecurringVisitScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -264,6 +265,17 @@ const RootNavigator = () => {
         component={AddGeneralExpenseScreen}
         options={{
           title: 'Add General Expense',
+          headerStyle: { backgroundColor: '#00BFFF' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen 
+        name="RecurringVisit" 
+        component={RecurringVisitScreen}
+        options={{
+          title: 'Create Recurring Visit',
           headerStyle: { backgroundColor: '#00BFFF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
