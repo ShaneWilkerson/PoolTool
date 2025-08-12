@@ -10,11 +10,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { updatePoolVisit } from './firestoreLogic';
+import { updatePoolVisit, stopRecurringVisits, updateRecurringVisits } from './firestoreLogic';
 
 const EditPoolVisitModal = ({ visible, poolVisit, onClose, onSave }) => {
   const [tasks, setTasks] = useState(['']);
   const [loading, setLoading] = useState(false);
+  const [stopRecurring, setStopRecurring] = useState(false);
 
   // Update tasks when poolVisit changes
   React.useEffect(() => {
@@ -23,6 +24,8 @@ const EditPoolVisitModal = ({ visible, poolVisit, onClose, onSave }) => {
     } else {
       setTasks(['']);
     }
+    // Reset stop recurring option when modal opens
+    setStopRecurring(false);
   }, [poolVisit]);
 
   const addTask = () => {
@@ -50,11 +53,46 @@ const EditPoolVisitModal = ({ visible, poolVisit, onClose, onSave }) => {
       return;
     }
 
+    // If stopping recurring, show confirmation first
+    if (stopRecurring && poolVisit?.isRecurring) {
+      Alert.alert(
+        'Stop Recurring Visits',
+        'This will remove all future scheduled pool visits for this recurring pattern. Are you sure you want to continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Stop Recurring',
+            style: 'destructive',
+            onPress: async () => {
+              await performSave(filteredTasks, true);
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    await performSave(filteredTasks, false);
+  };
+
+  const performSave = async (filteredTasks, isStoppingRecurring) => {
     setLoading(true);
     try {
+      // If stopping recurring, do that first
+      if (isStoppingRecurring) {
+        await stopRecurringVisits(poolVisit.id);
+      } else if (poolVisit?.isRecurring) {
+        // If it's still recurring, update all future visits with the new tasks
+        await updateRecurringVisits(poolVisit.id, {
+          tasks: filteredTasks,
+        });
+      }
+      
+      // Update the pool visit
       await updatePoolVisit(poolVisit.id, {
         tasks: filteredTasks,
       });
+      
       onSave();
       onClose();
     } catch (error) {
@@ -122,6 +160,37 @@ const EditPoolVisitModal = ({ visible, poolVisit, onClose, onSave }) => {
               <Ionicons name="add-circle-outline" size={24} color="#00BFFF" />
               <Text style={styles.addButtonText}>Add Task</Text>
             </TouchableOpacity>
+
+            {/* Recurring Options - only show for recurring visits */}
+            {poolVisit?.isRecurring && (
+              <View style={styles.recurringSection}>
+                <Text style={styles.sectionTitle}>Recurring Options</Text>
+                <View style={styles.recurringInfo}>
+                  <Ionicons name="repeat" size={16} color="#00BFFF" />
+                  <Text style={styles.recurringText}>
+                    {poolVisit.recurrenceFrequency === 'weekly' ? 'Every week' : 
+                     poolVisit.recurrenceFrequency === 'biweekly' ? 'Every 2 weeks' : 
+                     'Every month'} on {poolVisit.recurrenceDayOfWeek}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.stopRecurringContainer}
+                  onPress={() => setStopRecurring(!stopRecurring)}
+                >
+                  <View style={[styles.checkbox, stopRecurring && styles.checkboxChecked]}>
+                    {stopRecurring && <Ionicons name="checkmark" size={16} color="white" />}
+                  </View>
+                  <Text style={styles.stopRecurringText}>Stop recurring</Text>
+                </TouchableOpacity>
+                
+                {stopRecurring && (
+                  <Text style={styles.stopRecurringWarning}>
+                    This will remove all future scheduled pool visits for this recurring pattern.
+                  </Text>
+                )}
+              </View>
+            )}
           </ScrollView>
 
           <View style={styles.modalButtons}>
@@ -247,6 +316,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     fontWeight: '600',
+  },
+  recurringSection: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e1e5e9',
+  },
+  recurringInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recurringText: {
+    fontSize: 14,
+    color: '#555',
+    marginLeft: 8,
+  },
+  stopRecurringContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#00BFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00BFFF',
+    borderColor: '#00BFFF',
+  },
+  stopRecurringText: {
+    fontSize: 14,
+    color: '#00BFFF',
+    fontWeight: '600',
+  },
+  stopRecurringWarning: {
+    fontSize: 12,
+    color: '#FF3B30',
+    marginTop: 5,
   },
 });
 

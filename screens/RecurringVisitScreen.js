@@ -18,17 +18,19 @@ import { auth } from '../firebase';
 import SelectedCustomerBox from '../src/SelectedCustomerBox';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-const RecurringVisitScreen = ({ navigation }) => {
+const RecurringVisitScreen = ({ navigation, route }) => {
+  const { editMode, recurringVisit } = route?.params || {};
+  
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [tasks, setTasks] = useState(['']);
-  const [frequency, setFrequency] = useState('weekly');
-  const [dayOfWeek, setDayOfWeek] = useState(() => {
+  const [selectedCustomer, setSelectedCustomer] = useState(editMode ? recurringVisit : null);
+  const [searchQuery, setSearchQuery] = useState(editMode ? recurringVisit?.customerName || '' : '');
+  const [tasks, setTasks] = useState(editMode ? recurringVisit?.tasks || [''] : ['']);
+  const [frequency, setFrequency] = useState(editMode ? recurringVisit?.frequency || 'weekly' : 'weekly');
+  const [dayOfWeek, setDayOfWeek] = useState(editMode ? recurringVisit?.dayOfWeek || 0 : (() => {
     const today = new Date();
     return today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  });
+  })());
   const [loading, setLoading] = useState(false);
   const inputRef = useRef();
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -130,8 +132,6 @@ const RecurringVisitScreen = ({ navigation }) => {
       return;
     }
 
-
-
     const validTasks = tasks.filter(task => task.trim() !== '');
     if (validTasks.length === 0) {
       Alert.alert('Error', 'Please add at least one task');
@@ -145,14 +145,50 @@ const RecurringVisitScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement recurring visit creation logic
-      // For now, just show success message
-      Alert.alert('Success', 'Recurring visit template created successfully', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      const { db } = await import('../firebase');
+      const { collection, addDoc, updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
+      const { auth } = await import('../firebase');
+
+      if (!auth.currentUser) {
+        throw new Error('User not authenticated');
+      }
+
+      if (editMode && recurringVisit) {
+        // Update existing recurring visit
+        const recurringVisitRef = doc(db, 'recurringVisits', recurringVisit.id);
+        await updateDoc(recurringVisitRef, {
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          tasks: validTasks,
+          frequency: frequency,
+          dayOfWeek: dayOfWeek,
+        });
+
+        Alert.alert('Success', 'Recurring visit updated successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        // Create new recurring visit
+        const recurringVisitData = {
+          accountId: auth.currentUser.uid,
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          tasks: validTasks,
+          frequency: frequency,
+          dayOfWeek: dayOfWeek,
+          createdAt: serverTimestamp(),
+          active: true,
+        };
+
+        await addDoc(collection(db, 'recurringVisits'), recurringVisitData);
+
+        Alert.alert('Success', 'Recurring visit template created successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
     } catch (error) {
-      console.error('Error creating recurring visit:', error);
-      Alert.alert('Error', 'Failed to create recurring visit');
+      console.error('Error saving recurring visit:', error);
+      Alert.alert('Error', editMode ? 'Failed to update recurring visit' : 'Failed to create recurring visit');
     } finally {
       setLoading(false);
     }
@@ -176,7 +212,7 @@ const RecurringVisitScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <KeyboardAwareScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Create Recurring Visit</Text>
+        <Text style={styles.title}>{editMode ? 'Edit Recurring Visit' : 'Create Recurring Visit'}</Text>
 
         {/* Customer Search */}
         <View style={styles.section}>
@@ -314,15 +350,15 @@ const RecurringVisitScreen = ({ navigation }) => {
         </View>
 
         {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Creating...' : 'Create Recurring Visit'}
-          </Text>
-        </TouchableOpacity>
+                    <TouchableOpacity
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.submitButtonText}>
+                {loading ? (editMode ? 'Updating...' : 'Creating...') : (editMode ? 'Update Recurring Visit' : 'Create Recurring Visit')}
+              </Text>
+            </TouchableOpacity>
       </KeyboardAwareScrollView>
 
 

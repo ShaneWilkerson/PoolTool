@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted, markPoolVisitCompleted } from '../src/firestoreLogic';
+import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted, markPoolVisitCompleted, checkAndGenerateRecurringVisits } from '../src/firestoreLogic';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import EditPoolVisitModal from '../src/EditPoolVisitModal';
@@ -57,6 +57,9 @@ const ScheduleScreen = ({ navigation }) => {
       const allVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPoolVisits(allVisits);
       setLoading(false);
+      
+      // Check if we need to generate more future recurring visits
+      checkAndGenerateRecurringVisits();
     });
     return unsubscribe;
   }, [selectedWeek]);
@@ -329,14 +332,14 @@ const ScheduleScreen = ({ navigation }) => {
                                   <Ionicons name="create" size={16} color="#00BFFF" />
                                   <Text style={styles.editButtonText}>Edit</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.historyButton}
-                                  onPress={() => navigation.navigate('CustomerHistory', { customerId: visit.customerId })}
-                                >
-                                  <Ionicons name="time" size={16} color="#00BFFF" />
-                                  <Text style={styles.historyButtonText}>Pool History</Text>
-                                  <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
-                                </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.historyButton}
+                                onPress={() => navigation.navigate('CustomerHistory', { customerId: visit.customerId })}
+                              >
+                                <Ionicons name="time" size={16} color="#00BFFF" />
+                                <Text style={styles.historyButtonText}>Pool History</Text>
+                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                              </TouchableOpacity>
                               </View>
                             </View>
                           )}
@@ -398,14 +401,14 @@ const ScheduleScreen = ({ navigation }) => {
                                   <Ionicons name="create" size={16} color="#00BFFF" />
                                   <Text style={styles.editButtonText}>Edit</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                  style={styles.historyButton}
-                                  onPress={() => navigation.navigate('CustomerHistory', { customerId: todo.customerId })}
-                                >
-                                  <Ionicons name="time" size={16} color="#00BFFF" />
-                                  <Text style={styles.historyButtonText}>Pool History</Text>
-                                  <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
-                                </TouchableOpacity>
+                              <TouchableOpacity
+                                style={styles.historyButton}
+                                onPress={() => navigation.navigate('CustomerHistory', { customerId: todo.customerId })}
+                              >
+                                <Ionicons name="time" size={16} color="#00BFFF" />
+                                <Text style={styles.historyButtonText}>Pool History</Text>
+                                <Ionicons name="chevron-forward" size={14} color="#00BFFF" />
+                              </TouchableOpacity>
                               </View>
                             </View>
                           )}

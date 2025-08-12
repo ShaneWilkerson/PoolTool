@@ -10,18 +10,18 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getCustomersForAccount, updatePoolVisitOrder, updateTodoOrder, markTodoCompleted } from '../src/firestoreLogic';
+import { getPoolVisitsForDate, getCustomersForAccount, markTodoCompleted, markPoolVisitCompleted, updatePoolVisitOrder, checkAndGenerateRecurringVisits } from '../src/firestoreLogic';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 import EditPoolVisitModal from '../src/EditPoolVisitModal';
 import EditTodoModal from '../src/EditTodoModal';
 
 const HomeScreen = ({ navigation }) => {
-  const [customers, setCustomers] = useState([]);
   const [poolVisits, setPoolVisits] = useState([]);
   const [todos, setTodos] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddStore, setShowAddStore] = useState(false);
   const [completedToday, setCompletedToday] = useState(0);
   const [todosThisWeek, setTodosThisWeek] = useState(0);
   const [showEditPoolVisitModal, setShowEditPoolVisitModal] = useState(false);
@@ -47,10 +47,9 @@ const HomeScreen = ({ navigation }) => {
     fetchCustomers();
   }, []);
 
+  // Fetch pool visits for today (including recurring ones)
   useEffect(() => {
     if (!auth || !auth.currentUser || !db) {
-      console.warn('Firebase not available or user not authenticated');
-      setLoading(false);
       return;
     }
 
@@ -58,22 +57,30 @@ const HomeScreen = ({ navigation }) => {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
+    
+    // Fetch all pool visits for today (both regular and recurring)
     const q = query(
       collection(db, 'poolVisits'),
       where('accountId', '==', auth.currentUser.uid),
+      where('completed', '==', false),
       where('scheduledDate', '>=', today),
-      where('scheduledDate', '<', tomorrow),
-      where('completed', '==', false)
+      where('scheduledDate', '<', tomorrow)
     );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPoolVisits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPoolVisits(allVisits);
       setLoading(false);
+      
+      // Check and generate recurring visits when the app starts
+      checkAndGenerateRecurringVisits();
     }, (error) => {
       console.error('Error fetching pool visits:', error);
       setLoading(false);
     });
+    
     return unsubscribe;
-  }, []);
+  }, [auth, db]);
 
   useEffect(() => {
     if (!auth || !auth.currentUser || !db) {
@@ -177,6 +184,7 @@ const HomeScreen = ({ navigation }) => {
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
+      
       const q = query(
         collection(db, 'poolVisits'),
         where('accountId', '==', auth.currentUser.uid),
@@ -185,7 +193,8 @@ const HomeScreen = ({ navigation }) => {
         where('completed', '==', false)
       );
       const snapshot = await getDocs(q);
-      setPoolVisits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPoolVisits(allVisits);
     } catch (error) {
       console.error('Error refreshing pool visits:', error);
     }
@@ -234,21 +243,13 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={{ marginTop: 32, marginBottom: 24 }}>
-          {/* Row: Create Pool Visit & Recurring Visit */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('CreatePoolVisit')}>
-              <View style={styles.menuButtonContent}>
-                <Ionicons name="water" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.menuButtonText}>Create Pool Visit</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.menuButton, { flex: 1, marginLeft: 8 }]} onPress={() => navigation.navigate('RecurringVisit')}>
-              <View style={styles.menuButtonContent}>
-                <Ionicons name="repeat" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
-                <Text style={styles.menuButtonText}>Recurring Visit</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+          {/* Create Pool Visit (wide) */}
+          <TouchableOpacity style={[styles.menuButton, styles.menuButtonWide]} onPress={() => navigation.navigate('CreatePoolVisit')}>
+            <View style={styles.menuButtonContent}>
+              <Ionicons name="water" size={22} color="#00BFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.menuButtonText}>Create Pool Visit</Text>
+            </View>
+          </TouchableOpacity>
           {/* Row: Add to To-do List & View Customers */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             <TouchableOpacity style={[styles.menuButton, { flex: 1, marginRight: 8 }]} onPress={() => navigation.navigate('AddToDo')}>
@@ -296,13 +297,13 @@ const HomeScreen = ({ navigation }) => {
           {poolVisits.length === 0 ? (
             <View style={styles.emptyCard}>
               <Ionicons name="water-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>No pool visits scheduled for today</Text>
+              <Text style={styles.emptyText}>No tasks scheduled for today</Text>
               <Text style={styles.emptySubtext}>Create pool visits to see your tasks</Text>
             </View>
           ) : (
             <View style={styles.tasksContainer}>
               {poolVisits
-                .slice() // copy
+                .slice()
                 .sort((a, b) => (a.order || 0) - (b.order || 0))
                 .map((visit, index, arr) => (
                   <View key={visit.id} style={styles.taskCard}>
@@ -318,7 +319,8 @@ const HomeScreen = ({ navigation }) => {
                           if (index === 0) return;
                           const newArr = arr.slice();
                           [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
-                          setPoolVisits(newArr);
+                          // Update order for all pool visits
+                          setPoolVisits(newArr.map((v, idx) => ({ ...v, order: idx + 1 })));
                           await Promise.all(
                             newArr.map((v, idx) => updatePoolVisitOrder(v.id, idx + 1))
                           );
@@ -334,7 +336,8 @@ const HomeScreen = ({ navigation }) => {
                           if (index === arr.length - 1) return;
                           const newArr = arr.slice();
                           [newArr[index], newArr[index + 1]] = [newArr[index + 1], newArr[index]];
-                          setPoolVisits(newArr);
+                          // Update order for all pool visits
+                          setPoolVisits(newArr.map((v, idx) => ({ ...v, order: idx + 1 })));
                           await Promise.all(
                             newArr.map((v, idx) => updatePoolVisitOrder(v.id, idx + 1))
                           );
@@ -364,11 +367,26 @@ const HomeScreen = ({ navigation }) => {
                         </View>
                       ))}
                     </View>
+                    {/* Recurring indicator - only show for recurring visits */}
+                    {visit.isRecurring && (
+                      <View style={styles.recurringIndicator}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name="repeat" size={16} color="#00BFFF" />
+                          <Text style={styles.recurringText}>
+                            {visit.recurrenceFrequency === 'weekly' ? 'Every week' : 
+                             visit.recurrenceFrequency === 'biweekly' ? 'Every 2 weeks' : 
+                             'Every month'}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 ))}
             </View>
           )}
         </View>
+
+
 
         {/* To-do List Section */}
         <View style={styles.section}>
@@ -691,6 +709,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     marginLeft: 8,
+  },
+  recurringIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  recurringText: {
+    fontSize: 12,
+    color: '#00BFFF',
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });
 

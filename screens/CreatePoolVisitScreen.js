@@ -55,10 +55,14 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   });
   const [tasks, setTasks] = useState(['']);
   const [loading, setLoading] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState('weekly');
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState(null);
   const inputRef = useRef();
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
+  const taskInputRefs = useRef({});
 
   // Helper to get start of this week
   const getStartOfThisWeek = () => {
@@ -100,6 +104,15 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       setFilteredCustomers(filtered.slice(0, 5)); // Limit to 5 results
     }
   }, [searchQuery, customers]);
+
+  // Set default day of week when selected date changes
+  useEffect(() => {
+    if (selectedDay) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayIndex = selectedDay.getDay();
+      setRecurrenceDayOfWeek(dayNames[dayIndex]);
+    }
+  }, [selectedDay]);
 
   // Show dropdown when typing
   useEffect(() => {
@@ -150,6 +163,29 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     setTasks(newTasks);
   };
 
+  const handleTaskSubmit = (index) => {
+    // If this is the last task and it has content, add a new task
+    if (index === tasks.length - 1 && tasks[index].trim() !== '') {
+      addTask();
+      // Focus the new task input after a brief delay
+      setTimeout(() => {
+        if (taskInputRefs.current[index + 1]) {
+          taskInputRefs.current[index + 1].focus();
+        }
+      }, 100);
+    } else if (index < tasks.length - 1) {
+      // Move to next task input
+      if (taskInputRefs.current[index + 1]) {
+        taskInputRefs.current[index + 1].focus();
+      }
+    }
+  };
+
+  const handleRecurringToggle = () => {
+    // Prevent layout shifts by maintaining scroll position
+    setIsRecurring(!isRecurring);
+  };
+
   // Week navigation
   const changeWeek = (direction) => {
     const newStart = new Date(selectedWeekStart);
@@ -187,6 +223,11 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       return;
     }
 
+    if (isRecurring && !recurrenceDayOfWeek) {
+      Alert.alert('Error', 'Please select a day of week for recurring visits');
+      return;
+    }
+
     setLoading(true);
     try {
       const today = new Date();
@@ -195,12 +236,16 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       selected.setHours(0, 0, 0, 0);
       const isPast = selected < today;
 
+      // Create as a regular pool visit with recurring properties
       await addPoolVisit({
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
         customerEmail: selectedCustomer.email,
         scheduledDate: selectedDay,
         tasks: validTasks,
+        isRecurring: isRecurring,
+        recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+        recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
         ...(isPast ? { completed: true, completedAt: selected } : {}),
       });
       
@@ -208,8 +253,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      console.error('Error creating pool visit:', error);
-      Alert.alert('Error', 'Failed to create pool visit');
+      console.error('Error creating visit:', error);
+      Alert.alert('Error', 'Failed to create visit');
     } finally {
       setLoading(false);
     }
@@ -232,7 +277,17 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <KeyboardAwareScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView 
+        style={styles.scrollView} 
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={20}
+        extraHeight={120}
+        keyboardDismissMode="interactive"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
         <Text style={styles.title}>Create Pool Visit</Text>
 
         {/* Customer Search */}
@@ -276,18 +331,105 @@ const CreatePoolVisitScreen = ({ navigation }) => {
           />
         </View>
 
+        {/* Recurring Checkbox */}
+        <View style={styles.section}>
+          <View style={styles.recurringRow}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={handleRecurringToggle}
+            >
+              <View style={[styles.checkbox, isRecurring && styles.checkboxChecked]}>
+                {isRecurring && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.recurringLabel}>Make this a recurring visit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Recurrence Options (only show when recurring is enabled) */}
+        {isRecurring && (
+          <View style={styles.section}>
+            <View style={styles.recurrenceCard}>
+              <Text style={styles.recurrenceTitle}>Recurrence</Text>
+              
+              {/* Frequency Selection */}
+              <View style={styles.frequencySection}>
+                <Text style={styles.optionLabel}>Frequency</Text>
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity
+                    style={[
+                      styles.segmentButton,
+                      recurrenceFrequency === 'weekly' && styles.segmentButtonActive
+                    ]}
+                    onPress={() => setRecurrenceFrequency('weekly')}
+                  >
+                    <Text style={[
+                      styles.segmentButtonText,
+                      recurrenceFrequency === 'weekly' && styles.segmentButtonTextActive
+                    ]}>
+                      Once a week
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.segmentButton,
+                      recurrenceFrequency === 'biweekly' && styles.segmentButtonActive
+                    ]}
+                    onPress={() => setRecurrenceFrequency('biweekly')}
+                  >
+                    <Text style={[
+                      styles.segmentButtonText,
+                      recurrenceFrequency === 'biweekly' && styles.segmentButtonTextActive
+                    ]}>
+                      Every 2 weeks
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.segmentButton,
+                      recurrenceFrequency === 'monthly' && styles.segmentButtonActive
+                    ]}
+                    onPress={() => setRecurrenceFrequency('monthly')}
+                  >
+                    <Text style={[
+                      styles.segmentButtonText,
+                      recurrenceFrequency === 'monthly' && styles.segmentButtonTextActive
+                    ]}>
+                      Every month
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Day of Week Selection */}
+              <View style={styles.dayOfWeekSection}>
+                <Text style={styles.optionLabel}>Day of week</Text>
+                <View style={styles.selectedDayDisplay}>
+                  <Text style={styles.selectedDayText}>
+                    {recurrenceDayOfWeek || 'Select a date above'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Tasks */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tasks</Text>
           {tasks.map((task, index) => (
             <View key={index} style={styles.taskRow}>
               <TextInput
+                ref={el => taskInputRefs.current[index] = el}
                 style={styles.taskInput}
                 placeholder={`Task ${index + 1}`}
                 value={task}
                 onChangeText={(value) => updateTask(index, value)}
-                returnKeyType="done"
-                onSubmitEditing={Keyboard.dismiss}
+                onSubmitEditing={() => handleTaskSubmit(index)}
+                returnKeyType="next"
+                blurOnSubmit={false}
+                multiline={false}
+                autoCapitalize="sentences"
               />
               {tasks.length > 1 && (
                 <TouchableOpacity
@@ -318,7 +460,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
           disabled={loading}
         >
           <Text style={styles.submitButtonText}>
-            {loading ? 'Creating...' : 'Create Pool Visit'}
+            {loading ? 'Creating...' : (isRecurring ? 'Create Recurring Visit' : 'Create Pool Visit')}
           </Text>
         </TouchableOpacity>
       </KeyboardAwareScrollView>
@@ -585,6 +727,102 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    padding: 12,
+    borderRadius: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#00BFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00BFFF',
+    borderColor: '#00BFFF',
+  },
+  recurringLabel: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  recurrenceCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  recurrenceTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  frequencySection: {
+    marginBottom: 16,
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  segmentButtonActive: {
+    backgroundColor: '#00BFFF',
+  },
+  segmentButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  segmentButtonTextActive: {
+    color: 'white',
+  },
+  dayOfWeekSection: {
+    marginTop: 16,
+  },
+  selectedDayDisplay: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedDayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
   },
 });
 

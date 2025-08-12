@@ -262,7 +262,7 @@ const MapScreen = () => {
                   ).join('\n')
                 );
               }}
-            />
+              />
           ))}
           {/* All pools (dark blue) */}
           {showAllPools && customers.filter(c => c.latitude && c.longitude && c.archived !== true && c.deleted !== true && c.isActive !== false).map(pool => (
