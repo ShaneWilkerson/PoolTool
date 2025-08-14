@@ -63,6 +63,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
   const taskInputRefs = useRef({});
+  const scrollViewRef = useRef(null);
 
   // Helper to get start of this week
   const getStartOfThisWeek = () => {
@@ -94,6 +95,14 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
+  // Handle recurring section changes smoothly
+  useEffect(() => {
+    if (isRecurring && selectedDay) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      setRecurrenceDayOfWeek(dayNames[selectedDay.getDay()]);
+    }
+  }, [isRecurring, selectedDay]);
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredCustomers(customers);
@@ -104,15 +113,6 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       setFilteredCustomers(filtered.slice(0, 5)); // Limit to 5 results
     }
   }, [searchQuery, customers]);
-
-  // Set default day of week when selected date changes
-  useEffect(() => {
-    if (selectedDay) {
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const dayIndex = selectedDay.getDay();
-      setRecurrenceDayOfWeek(dayNames[dayIndex]);
-    }
-  }, [selectedDay]);
 
   // Show dropdown when typing
   useEffect(() => {
@@ -163,27 +163,52 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     setTasks(newTasks);
   };
 
-  const handleTaskSubmit = (index) => {
-    // If this is the last task and it has content, add a new task
-    if (index === tasks.length - 1 && tasks[index].trim() !== '') {
-      addTask();
-      // Focus the new task input after a brief delay
-      setTimeout(() => {
-        if (taskInputRefs.current[index + 1]) {
-          taskInputRefs.current[index + 1].focus();
-        }
-      }, 100);
-    } else if (index < tasks.length - 1) {
-      // Move to next task input
-      if (taskInputRefs.current[index + 1]) {
-        taskInputRefs.current[index + 1].focus();
+  const handleRecurringToggle = () => {
+    setIsRecurring(!isRecurring);
+    if (!isRecurring) {
+      // When enabling recurring, set the day of week based on selected date
+      if (selectedDay) {
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        setRecurrenceDayOfWeek(dayNames[selectedDay.getDay()]);
       }
+    } else {
+      // When disabling recurring, clear the recurrence settings
+      setRecurrenceFrequency('weekly');
+      setRecurrenceDayOfWeek(null);
     }
   };
 
-  const handleRecurringToggle = () => {
-    // Prevent layout shifts by maintaining scroll position
-    setIsRecurring(!isRecurring);
+  const handleTaskSubmit = (index) => {
+    if (index < tasks.length - 1) {
+      // Focus next input
+      if (taskInputRefs.current[index + 1]) {
+        taskInputRefs.current[index + 1].focus();
+      }
+    } else {
+      // Last input, add new task and focus it
+      addTask();
+      setTimeout(() => {
+        if (taskInputRefs.current[tasks.length]) {
+          taskInputRefs.current[tasks.length].focus();
+        }
+      }, 100);
+    }
+  };
+
+  const scrollToInput = (inputRef) => {
+    if (inputRef && scrollViewRef.current) {
+      inputRef.measureLayout(
+        scrollViewRef.current,
+        (x, y) => {
+          // Smooth scroll to the input position
+          scrollViewRef.current?.scrollTo({
+            y: y - 100, // Offset to show some context above
+            animated: true
+          });
+        },
+        () => {}
+      );
+    }
   };
 
   // Week navigation
@@ -278,15 +303,19 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <KeyboardAwareScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView} 
         keyboardShouldPersistTaps="handled"
         enableOnAndroid={true}
         enableAutomaticScroll={true}
-        extraScrollHeight={20}
-        extraHeight={120}
+        extraScrollHeight={100}
+        extraHeight={150}
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 150 }}
+        scrollEnabled={true}
+        bounces={false}
+        alwaysBounceVertical={false}
       >
         <Text style={styles.title}>Create Pool Visit</Text>
 
@@ -430,6 +459,10 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 blurOnSubmit={false}
                 multiline={false}
                 autoCapitalize="sentences"
+                onFocus={() => {
+                  // Smooth scroll to input to prevent jumping
+                  setTimeout(() => scrollToInput(taskInputRefs.current[index]), 50);
+                }}
               />
               {tasks.length > 1 && (
                 <TouchableOpacity
@@ -763,19 +796,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#e1e5e9',
+    marginTop: 8,
+    minHeight: 200, // Prevent layout shifts
   },
   recurrenceTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 16,
-    textAlign: 'center',
   },
   frequencySection: {
     marginBottom: 16,
