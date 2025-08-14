@@ -103,6 +103,18 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     }
   }, [isRecurring, selectedDay]);
 
+  // Initialize refs when tasks change
+  useEffect(() => {
+    // Ensure refs are properly set for all task inputs
+    const validRefs = {};
+    Object.keys(taskInputRefs.current).forEach(key => {
+      if (taskInputRefs.current[key] && taskInputRefs.current[key].measureLayout) {
+        validRefs[key] = taskInputRefs.current[key];
+      }
+    });
+    taskInputRefs.current = validRefs;
+  }, [tasks]);
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setFilteredCustomers(customers);
@@ -181,33 +193,56 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   const handleTaskSubmit = (index) => {
     if (index < tasks.length - 1) {
       // Focus next input
-      if (taskInputRefs.current[index + 1]) {
-        taskInputRefs.current[index + 1].focus();
+      const nextRef = taskInputRefs.current[index + 1];
+      if (nextRef && nextRef.focus) {
+        nextRef.focus();
       }
     } else {
       // Last input, add new task and focus it
       addTask();
       setTimeout(() => {
-        if (taskInputRefs.current[tasks.length]) {
-          taskInputRefs.current[tasks.length].focus();
+        const newTaskRef = taskInputRefs.current[tasks.length];
+        if (newTaskRef && newTaskRef.focus) {
+          newTaskRef.focus();
         }
       }, 100);
     }
   };
 
   const scrollToInput = (inputRef) => {
-    if (inputRef && scrollViewRef.current) {
-      inputRef.measureLayout(
-        scrollViewRef.current,
-        (x, y) => {
-          // Smooth scroll to the input position
-          scrollViewRef.current?.scrollTo({
-            y: y - 100, // Offset to show some context above
-            animated: true
-          });
-        },
-        () => {}
-      );
+    if (inputRef && scrollViewRef.current && inputRef.measureLayout) {
+      try {
+        inputRef.measureLayout(
+          scrollViewRef.current,
+          (x, y) => {
+            // Smooth scroll to the input position
+            scrollViewRef.current?.scrollTo({
+              y: y - 100, // Offset to show some context above
+              animated: true
+            });
+          },
+          () => {
+            // Fallback if measureLayout fails
+            console.log('measureLayout failed, using fallback scroll');
+            scrollToInputSimple();
+          }
+        );
+      } catch (error) {
+        console.log('Error in scrollToInput:', error);
+        scrollToInputSimple();
+      }
+    } else {
+      scrollToInputSimple();
+    }
+  };
+
+  const scrollToInputSimple = () => {
+    // Simple fallback scroll that doesn't rely on measureLayout
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        y: 400, // Scroll to a reasonable position
+        animated: true
+      });
     }
   };
 
@@ -449,7 +484,11 @@ const CreatePoolVisitScreen = ({ navigation }) => {
           {tasks.map((task, index) => (
             <View key={index} style={styles.taskRow}>
               <TextInput
-                ref={el => taskInputRefs.current[index] = el}
+                ref={el => {
+                  if (el) {
+                    taskInputRefs.current[index] = el;
+                  }
+                }}
                 style={styles.taskInput}
                 placeholder={`Task ${index + 1}`}
                 value={task}
@@ -461,7 +500,10 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 autoCapitalize="sentences"
                 onFocus={() => {
                   // Smooth scroll to input to prevent jumping
-                  setTimeout(() => scrollToInput(taskInputRefs.current[index]), 50);
+                  const currentRef = taskInputRefs.current[index];
+                  if (currentRef && currentRef.measureLayout) {
+                    setTimeout(() => scrollToInput(currentRef), 50);
+                  }
                 }}
               />
               {tasks.length > 1 && (
