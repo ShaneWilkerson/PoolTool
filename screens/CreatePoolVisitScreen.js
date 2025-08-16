@@ -105,14 +105,13 @@ const CreatePoolVisitScreen = ({ navigation }) => {
 
   // Initialize refs when tasks change
   useEffect(() => {
-    // Ensure refs are properly set for all task inputs
-    const validRefs = {};
-    Object.keys(taskInputRefs.current).forEach(key => {
-      if (taskInputRefs.current[key] && taskInputRefs.current[key].measureLayout) {
-        validRefs[key] = taskInputRefs.current[key];
-      }
-    });
-    taskInputRefs.current = validRefs;
+    // Ensure refs array is properly initialized
+    if (!taskInputRefs.current) {
+      taskInputRefs.current = [];
+    }
+    
+    // Clean up any null refs
+    taskInputRefs.current = taskInputRefs.current.filter(ref => ref !== null && ref !== undefined);
   }, [tasks]);
 
   useEffect(() => {
@@ -194,53 +193,44 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     if (index < tasks.length - 1) {
       // Focus next input
       const nextRef = taskInputRefs.current[index + 1];
-      if (nextRef && nextRef.focus) {
-        nextRef.focus();
+      if (nextRef && typeof nextRef.focus === 'function') {
+        try {
+          nextRef.focus();
+        } catch (error) {
+          console.log('Error focusing next input:', error);
+        }
       }
     } else {
       // Last input, add new task and focus it
       addTask();
       setTimeout(() => {
         const newTaskRef = taskInputRefs.current[tasks.length];
-        if (newTaskRef && newTaskRef.focus) {
-          newTaskRef.focus();
+        if (newTaskRef && typeof newTaskRef.focus === 'function') {
+          try {
+            newTaskRef.focus();
+          } catch (error) {
+            console.log('Error focusing new task input:', error);
+          }
         }
       }, 100);
     }
   };
 
-  const scrollToInput = (inputRef) => {
-    if (inputRef && scrollViewRef.current && inputRef.measureLayout) {
-      try {
-        inputRef.measureLayout(
-          scrollViewRef.current,
-          (x, y) => {
-            // Smooth scroll to the input position
-            scrollViewRef.current?.scrollTo({
-              y: y - 100, // Offset to show some context above
-              animated: true
-            });
-          },
-          () => {
-            // Fallback if measureLayout fails
-            console.log('measureLayout failed, using fallback scroll');
-            scrollToInputSimple();
-          }
-        );
-      } catch (error) {
-        console.log('Error in scrollToInput:', error);
-        scrollToInputSimple();
-      }
-    } else {
-      scrollToInputSimple();
-    }
-  };
-
-  const scrollToInputSimple = () => {
-    // Simple fallback scroll that doesn't rely on measureLayout
+  const scrollToInput = (inputIndex = 0) => {
+    // Smart scroll based on input index to prevent jumping
     if (scrollViewRef.current) {
+      let scrollPosition = 200; // Base position
+      
+      // Adjust scroll position based on which input is focused
+      if (inputIndex > 0) {
+        scrollPosition = 200 + (inputIndex * 60); // 60px per input
+      }
+      
+      // Ensure we don't scroll too far
+      scrollPosition = Math.min(scrollPosition, 600);
+      
       scrollViewRef.current.scrollTo({
-        y: 400, // Scroll to a reasonable position
+        y: scrollPosition,
         animated: true
       });
     }
@@ -337,20 +327,20 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <KeyboardAwareScrollView 
+      <KeyboardAwareScrollView
         ref={scrollViewRef}
-        style={styles.scrollView} 
-        keyboardShouldPersistTaps="handled"
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        extraScrollHeight={120}
+        extraHeight={100}
         enableOnAndroid={true}
         enableAutomaticScroll={true}
-        extraScrollHeight={100}
-        extraHeight={150}
-        keyboardDismissMode="interactive"
+        keyboardOpeningTime={0}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 150 }}
-        scrollEnabled={true}
         bounces={false}
         alwaysBounceVertical={false}
+        scrollEnabled={true}
       >
         <Text style={styles.title}>Create Pool Visit</Text>
 
@@ -499,11 +489,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 multiline={false}
                 autoCapitalize="sentences"
                 onFocus={() => {
-                  // Smooth scroll to input to prevent jumping
-                  const currentRef = taskInputRefs.current[index];
-                  if (currentRef && currentRef.measureLayout) {
-                    setTimeout(() => scrollToInput(currentRef), 50);
-                  }
+                  // Simple scroll to prevent jumping
+                  setTimeout(() => scrollToInput(index), 50);
                 }}
               />
               {tasks.length > 1 && (
@@ -895,6 +882,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
+  },
+  scrollContent: {
+    paddingBottom: 150,
   },
 });
 
