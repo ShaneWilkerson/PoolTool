@@ -103,15 +103,25 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     }
   }, [isRecurring, selectedDay]);
 
+  // Initialize refs when component mounts
+  useEffect(() => {
+    // Ensure refs are properly initialized
+    if (!taskInputRefs.current || !Array.isArray(taskInputRefs.current)) {
+      taskInputRefs.current = [];
+    }
+  }, []);
+
   // Initialize refs when tasks change
   useEffect(() => {
     // Ensure refs array is properly initialized
-    if (!taskInputRefs.current) {
+    if (!taskInputRefs.current || !Array.isArray(taskInputRefs.current)) {
       taskInputRefs.current = [];
     }
     
-    // Clean up any null refs
-    taskInputRefs.current = taskInputRefs.current.filter(ref => ref !== null && ref !== undefined);
+    // Clean up any null refs safely
+    if (Array.isArray(taskInputRefs.current)) {
+      taskInputRefs.current = taskInputRefs.current.filter(ref => ref !== null && ref !== undefined);
+    }
   }, [tasks]);
 
   useEffect(() => {
@@ -156,9 +166,15 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   };
 
   const addTask = () => {
-    if (tasks.length < 10) {
-      setTasks([...tasks, '']);
+    setTasks([...tasks, '']);
+    
+    // Ensure refs array is properly sized for the new task
+    if (!taskInputRefs.current || !Array.isArray(taskInputRefs.current)) {
+      taskInputRefs.current = [];
     }
+    
+    // Add a placeholder for the new task ref
+    taskInputRefs.current[tasks.length] = null;
   };
 
   const removeTask = (index) => {
@@ -190,6 +206,11 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   };
 
   const handleTaskSubmit = (index) => {
+    // Ensure refs array is initialized
+    if (!taskInputRefs.current || !Array.isArray(taskInputRefs.current)) {
+      taskInputRefs.current = [];
+    }
+    
     if (index < tasks.length - 1) {
       // Focus next input
       const nextRef = taskInputRefs.current[index + 1];
@@ -218,7 +239,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
 
   const scrollToInput = (inputIndex = 0) => {
     // Smart scroll based on input index to prevent jumping
-    if (scrollViewRef.current) {
+    if (scrollViewRef.current && typeof scrollViewRef.current.scrollTo === 'function') {
       let scrollPosition = 200; // Base position
       
       // Adjust scroll position based on which input is focused
@@ -229,10 +250,14 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       // Ensure we don't scroll too far
       scrollPosition = Math.min(scrollPosition, 600);
       
-      scrollViewRef.current.scrollTo({
-        y: scrollPosition,
-        animated: true
-      });
+      try {
+        scrollViewRef.current.scrollTo({
+          y: scrollPosition,
+          animated: true
+        });
+      } catch (error) {
+        console.log('Error scrolling to input:', error);
+      }
     }
   };
 
@@ -476,6 +501,10 @@ const CreatePoolVisitScreen = ({ navigation }) => {
               <TextInput
                 ref={el => {
                   if (el) {
+                    // Ensure refs array is initialized
+                    if (!taskInputRefs.current || !Array.isArray(taskInputRefs.current)) {
+                      taskInputRefs.current = [];
+                    }
                     taskInputRefs.current[index] = el;
                   }
                 }}
@@ -490,7 +519,11 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 autoCapitalize="sentences"
                 onFocus={() => {
                   // Simple scroll to prevent jumping
-                  setTimeout(() => scrollToInput(index), 50);
+                  try {
+                    setTimeout(() => scrollToInput(index), 50);
+                  } catch (error) {
+                    console.log('Error in onFocus:', error);
+                  }
                 }}
               />
               {tasks.length > 1 && (
