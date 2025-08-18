@@ -365,9 +365,9 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         bounces={false}
         alwaysBounceVertical={false}
-        scrollEnabled={true}
       >
-        <Text style={styles.title}>Create Pool Visit</Text>
+        <View style={styles.contentWrapper}>
+          <Text style={styles.title}>Create Pool Visit</Text>
 
         {/* Customer Search */}
         <View style={styles.section}>
@@ -558,6 +558,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
             {loading ? 'Creating...' : (isRecurring ? 'Create Recurring Visit' : 'Create Pool Visit')}
           </Text>
         </TouchableOpacity>
+        </View>
       </KeyboardAwareScrollView>
 
       {/* Dropdown Overlay (not Modal) */}
@@ -918,6 +919,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 150,
+  },
+  contentWrapper: {
+    paddingHorizontal: 20, // Added horizontal padding
   },
 });
 
