@@ -17,8 +17,8 @@ import EditTodoModal from '../src/EditTodoModal';
 const CustomerHistoryScreen = ({ navigation, route }) => {
   const { customerId } = route.params;
   const [customer, setCustomer] = useState(null);
-  const [completedPoolVisits, setCompletedPoolVisits] = useState([]);
-  const [completedTodos, setCompletedTodos] = useState([]);
+  const [poolVisits, setPoolVisits] = useState([]);
+  const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEditPoolVisitModal, setShowEditPoolVisitModal] = useState(false);
   const [showEditTodoModal, setShowEditTodoModal] = useState(false);
@@ -44,27 +44,72 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
           return;
         }
 
-        // Fetch completed pool visits
-        const poolVisitsQuery = query(
-          collection(db, 'poolVisits'),
-          where('customerId', '==', customerId),
-          where('completed', '==', true),
-          orderBy('completedAt', 'desc')
-        );
-        const poolVisitsSnapshot = await getDocs(poolVisitsQuery);
-        const poolVisits = poolVisitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setCompletedPoolVisits(poolVisits);
+        // Fetch all pool visits (including recurring and upcoming)
+        let poolVisits = [];
+        try {
+          const poolVisitsQuery = query(
+            collection(db, 'poolVisits'),
+            where('customerId', '==', customerId)
+          );
+          const poolVisitsSnapshot = await getDocs(poolVisitsQuery);
+          poolVisits = poolVisitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Debug: Log a few pool visits to see their structure
+          if (poolVisits.length > 0) {
+            console.log('Sample pool visit data:', {
+              id: poolVisits[0].id,
+              date: poolVisits[0].date,
+              completed: poolVisits[0].completed,
+              completedAt: poolVisits[0].completedAt,
+              isRecurring: poolVisits[0].isRecurring
+            });
+          }
+        } catch (error) {
+          console.warn('Error fetching pool visits:', error);
+          // Fallback: try without any filters
+          try {
+            const allPoolVisitsSnapshot = await getDocs(collection(db, 'poolVisits'));
+            poolVisits = allPoolVisitsSnapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(visit => visit.customerId === customerId);
+          } catch (fallbackError) {
+            console.error('Fallback query also failed:', fallbackError);
+          }
+        }
+        setPoolVisits(poolVisits);
 
-        // Fetch completed todos
-        const todosQuery = query(
-          collection(db, 'todos'),
-          where('customerId', '==', customerId),
-          where('status', '==', 'completed'),
-          orderBy('completedAt', 'desc')
-        );
-        const todosSnapshot = await getDocs(todosQuery);
-        const todos = todosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setCompletedTodos(todos);
+        // Fetch all todos (including pending ones)
+        let todos = [];
+        try {
+          const todosQuery = query(
+            collection(db, 'todos'),
+            where('customerId', '==', customerId)
+          );
+          const todosSnapshot = await getDocs(todosQuery);
+          todos = todosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Debug: Log a few todos to see their structure
+          if (todos.length > 0) {
+            console.log('Sample todo data:', {
+              id: todos[0].id,
+              dueDate: todos[0].dueDate,
+              status: todos[0].status,
+              completedAt: todos[0].completedAt
+            });
+          }
+        } catch (error) {
+          console.warn('Error fetching todos:', error);
+          // Fallback: try without any filters
+          try {
+            const allTodosSnapshot = await getDocs(collection(db, 'todos'));
+            todos = allTodosSnapshot.docs
+              .map(doc => ({ id: doc.id, ...doc.data() }))
+              .filter(todo => todo.customerId === customerId);
+          } catch (fallbackError) {
+            console.error('Fallback query also failed:', fallbackError);
+          }
+        }
+        setTodos(todos);
 
       } catch (error) {
         console.error('Error fetching customer history:', error);
@@ -78,14 +123,40 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   }, [customerId, navigation]);
 
   const formatDate = (date) => {
-    if (!date) return 'Unknown date';
-    const dateObj = date.toDate ? date.toDate() : new Date(date);
-    return dateObj.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    if (!date) return 'No date set';
+    
+    try {
+      let dateObj;
+      if (date.toDate) {
+        // Firestore timestamp
+        dateObj = date.toDate();
+      } else if (date instanceof Date) {
+        // Already a Date object
+        dateObj = date;
+      } else if (typeof date === 'string' || typeof date === 'number') {
+        // String or timestamp number
+        dateObj = new Date(date);
+      } else {
+        console.warn('Unknown date format:', date, typeof date);
+        return 'Invalid date';
+      }
+      
+      // Check if the date is valid
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Invalid date value:', date);
+        return 'Invalid date';
+      }
+      
+      return dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error, 'Date value:', date);
+      return 'Date error';
+    }
   };
 
   const handleEditPoolVisit = (visit) => {
@@ -101,16 +172,28 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   const handleSavePoolVisit = async () => {
     // Refresh the data after saving
     try {
-      // Fetch completed pool visits
-      const poolVisitsQuery = query(
-        collection(db, 'poolVisits'),
-        where('customerId', '==', customerId),
-        where('completed', '==', true),
-        orderBy('completedAt', 'desc')
-      );
-      const poolVisitsSnapshot = await getDocs(poolVisitsQuery);
-      const poolVisits = poolVisitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCompletedPoolVisits(poolVisits);
+      // Fetch all pool visits (including recurring and upcoming)
+      let poolVisits = [];
+      try {
+        const poolVisitsQuery = query(
+          collection(db, 'poolVisits'),
+          where('customerId', '==', customerId)
+        );
+        const poolVisitsSnapshot = await getDocs(poolVisitsQuery);
+        poolVisits = poolVisitsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.warn('Error refreshing pool visits:', error);
+        // Fallback: try without any filters
+        try {
+          const allPoolVisitsSnapshot = await getDocs(collection(db, 'poolVisits'));
+          poolVisits = allPoolVisitsSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(visit => visit.customerId === customerId);
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+        }
+      }
+      setPoolVisits(poolVisits);
     } catch (error) {
       console.error('Error refreshing pool visits:', error);
     }
@@ -119,16 +202,28 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   const handleSaveTodo = async () => {
     // Refresh the data after saving
     try {
-      // Fetch completed todos
-      const todosQuery = query(
-        collection(db, 'todos'),
-        where('customerId', '==', customerId),
-        where('status', '==', 'completed'),
-        orderBy('completedAt', 'desc')
-      );
-      const todosSnapshot = await getDocs(todosQuery);
-      const todos = todosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCompletedTodos(todos);
+      // Fetch all todos (including pending ones)
+      let todos = [];
+      try {
+        const todosQuery = query(
+          collection(db, 'todos'),
+          where('customerId', '==', customerId)
+        );
+        const todosSnapshot = await getDocs(todosQuery);
+        todos = todosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.warn('Error refreshing todos:', error);
+        // Fallback: try without any filters
+        try {
+          const allTodosSnapshot = await getDocs(collection(db, 'todos'));
+          todos = allTodosSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(todo => todo.customerId === customerId);
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+        }
+      }
+      setTodos(todos);
     } catch (error) {
       console.error('Error refreshing todos:', error);
     }
@@ -139,7 +234,23 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
       <View style={styles.historyHeader}>
         <Ionicons name="water" size={20} color="#00BFFF" />
         <Text style={styles.historyTitle}>Pool Visit</Text>
-        <Text style={styles.historyDate}>{formatDate(visit.completedAt)}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.historyDate}>
+            {visit.completed && visit.completedAt 
+              ? formatDate(visit.completedAt) 
+              : formatDate(visit.date)
+            }
+          </Text>
+          {visit.completed ? (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>Completed</Text>
+            </View>
+          ) : (
+            <View style={[styles.statusBadge, styles.statusBadgeUpcoming]}>
+              <Text style={[styles.statusText, styles.statusTextUpcoming]}>Upcoming</Text>
+            </View>
+          )}
+        </View>
       </View>
       <TouchableOpacity
         style={styles.editButton}
@@ -147,6 +258,17 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
       >
         <Text style={styles.editButtonText}>Edit</Text>
       </TouchableOpacity>
+      {/* Show recurring indicator if it's a recurring visit */}
+      {visit.isRecurring && (
+        <View style={styles.recurringIndicator}>
+          <Ionicons name="repeat" size={16} color="#FF6B35" />
+          <Text style={styles.recurringText}>
+            {visit.recurrenceFrequency === 'Once a week' ? 'Every week' : 
+             visit.recurrenceFrequency === 'Every 2 weeks' ? 'Every 2 weeks' : 
+             visit.recurrenceFrequency === 'Every month' ? 'Every month' : 'Recurring'}
+          </Text>
+        </View>
+      )}
       <View style={styles.tasksContainer}>
         {visit.tasks && visit.tasks.map((task, index) => (
           <View key={index} style={styles.taskItem}>
@@ -163,7 +285,23 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
       <View style={styles.historyHeader}>
         <Ionicons name="list" size={20} color="#FFA500" />
         <Text style={styles.historyTitle}>To-Do Item</Text>
-        <Text style={styles.historyDate}>{formatDate(todo.completedAt)}</Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.historyDate}>
+            {todo.status === 'completed' && todo.completedAt 
+              ? formatDate(todo.completedAt) 
+              : formatDate(todo.dueDate)
+            }
+          </Text>
+          {todo.status === 'completed' ? (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>Completed</Text>
+            </View>
+          ) : (
+            <View style={[styles.statusBadge, styles.statusBadgeUpcoming]}>
+              <Text style={styles.statusTextUpcoming}>Pending</Text>
+            </View>
+          )}
+        </View>
       </View>
       <TouchableOpacity
         style={styles.editButton}
@@ -197,9 +335,52 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
     );
   }
 
-  const allHistory = [...completedPoolVisits, ...completedTodos].sort((a, b) => {
-    const dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
-    const dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt);
+  const allHistory = [...poolVisits, ...todos].sort((a, b) => {
+    // For pool visits, prioritize completedAt if completed, otherwise use date
+    // For todos, use dueDate field
+    let dateA, dateB;
+    
+    if (a.tasks) {
+      // This is a pool visit
+      if (a.completed && a.completedAt) {
+        // Use completedAt for completed visits
+        dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt || 0);
+      } else {
+        // Use scheduled date for upcoming visits
+        dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date || 0);
+      }
+    } else {
+      // This is a todo
+      if (a.status === 'completed' && a.completedAt) {
+        // Use completedAt for completed todos
+        dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt || 0);
+      } else {
+        // Use dueDate for pending todos
+        dateA = a.dueDate?.toDate ? a.dueDate.toDate() : new Date(a.dueDate || 0);
+      }
+    }
+    
+    if (b.tasks) {
+      // This is a pool visit
+      if (b.completed && b.completedAt) {
+        // Use completedAt for completed visits
+        dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt || 0);
+      } else {
+        // Use scheduled date for upcoming visits
+        dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date || 0);
+      }
+    } else {
+      // This is a todo
+      if (b.status === 'completed' && b.completedAt) {
+        // Use completedAt for completed todos
+        dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt || 0);
+      } else {
+        // Use dueDate for pending todos
+        dateB = b.dueDate?.toDate ? b.dueDate.toDate() : new Date(b.dueDate || 0);
+      }
+    }
+    
+    // Sort by most recent first
     return dateB - dateA;
   });
 
@@ -215,16 +396,17 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
       </TouchableOpacity>
 
       <ScrollView style={styles.scrollView}>
-        <Text style={styles.title}>Customer History</Text>
+        <Text style={styles.title}>Customer History & Schedule</Text>
         {customer && (
           <Text style={styles.customerName}>{customer.name}</Text>
         )}
+        <Text style={styles.subtitle}>Showing all pool visits and to-do items</Text>
 
         {allHistory.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="time-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No completed tasks yet</Text>
-            <Text style={styles.emptySubtext}>Completed pool visits and to-do items will appear here</Text>
+            <Text style={styles.emptyText}>No tasks yet</Text>
+            <Text style={styles.emptySubtext}>Pool visits and to-do items will appear here once created</Text>
           </View>
         ) : (
           <View style={styles.historyContainer}>
@@ -307,6 +489,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 24,
   },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -358,6 +545,28 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: 'bold',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    backgroundColor: '#e0f2f7',
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#00BFFF',
+  },
+  statusBadgeUpcoming: {
+    backgroundColor: '#fdf6e6',
+  },
+  statusTextUpcoming: {
+    color: '#FFA500',
+  },
   tasksContainer: {
     gap: 8,
   },
@@ -400,6 +609,17 @@ const styles = StyleSheet.create({
     color: '#00BFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  recurringIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  recurringText: {
+    fontSize: 14,
+    color: '#FF6B35',
+    marginLeft: 6,
   },
 });
 
