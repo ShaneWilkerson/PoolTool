@@ -232,9 +232,11 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   const renderPoolVisit = (visit) => (
     <View key={visit.id} style={styles.historyItem}>
       <View style={styles.historyHeader}>
-        <Ionicons name="water" size={20} color="#00BFFF" />
-        <Text style={styles.historyTitle}>Pool Visit</Text>
-        <View style={styles.headerRight}>
+        <View style={styles.titleSection}>
+          <Ionicons name="water" size={20} color="#2196F3" />
+          <Text style={styles.historyTitle}>Pool Visit</Text>
+        </View>
+        <View style={styles.dateSection}>
           <Text style={styles.historyDate}>
             {visit.completed && visit.completedAt 
               ? formatDate(visit.completedAt) 
@@ -283,9 +285,11 @@ const CustomerHistoryScreen = ({ navigation, route }) => {
   const renderTodo = (todo) => (
     <View key={todo.id} style={styles.historyItem}>
       <View style={styles.historyHeader}>
-        <Ionicons name="list" size={20} color="#FFA500" />
-        <Text style={styles.historyTitle}>To-Do Item</Text>
-        <View style={styles.headerRight}>
+        <View style={styles.titleSection}>
+          <Ionicons name="list" size={20} color="#FFA500" />
+          <Text style={styles.historyTitle}>To-Do Item</Text>
+        </View>
+        <View style={styles.dateSection}>
           <Text style={styles.historyDate}>
             {todo.status === 'completed' && todo.completedAt 
               ? formatDate(todo.completedAt) 
@@ -529,26 +533,31 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   historyHeader: {
+    flexDirection: 'column',
+    marginBottom: 12,
+    gap: 8,
+  },
+  titleSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 8,
+  },
+  dateSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   historyTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginLeft: 8,
     flex: 1,
   },
   historyDate: {
     fontSize: 14,
     color: '#666',
     fontWeight: 'bold',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   statusBadge: {
     backgroundColor: '#e0f2f7',
