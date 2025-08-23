@@ -63,7 +63,6 @@ const CreatePoolVisitScreen = ({ navigation }) => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const [rootLayout, setRootLayout] = useState({ x: 0, y: 0 });
   const taskInputRefs = useRef({});
-  const scrollViewRef = useRef(null);
 
   // Helper to get start of this week
   const getStartOfThisWeek = () => {
@@ -237,30 +236,6 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     }
   };
 
-  const scrollToInput = (inputIndex = 0) => {
-    // Smart scroll based on input index to prevent jumping
-    if (scrollViewRef.current && typeof scrollViewRef.current.scrollTo === 'function') {
-      let scrollPosition = 200; // Base position
-      
-      // Adjust scroll position based on which input is focused
-      if (inputIndex > 0) {
-        scrollPosition = 200 + (inputIndex * 60); // 60px per input
-      }
-      
-      // Ensure we don't scroll too far
-      scrollPosition = Math.min(scrollPosition, 600);
-      
-      try {
-        scrollViewRef.current.scrollTo({
-          y: scrollPosition,
-          animated: true
-        });
-      } catch (error) {
-        console.log('Error scrolling to input:', error);
-      }
-    }
-  };
-
   // Week navigation
   const changeWeek = (direction) => {
     const newStart = new Date(selectedWeekStart);
@@ -353,7 +328,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <KeyboardAwareScrollView
-        ref={scrollViewRef}
+        ref={null} // Removed scrollViewRef
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         extraScrollHeight={120}
@@ -365,6 +340,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         bounces={false}
         alwaysBounceVertical={false}
+        enableResetScrollToCoords={false}
+        keyboardDismissMode="interactive"
       >
         <View style={styles.contentWrapper}>
           <Text style={styles.title}>Create Pool Visit</Text>
@@ -518,12 +495,8 @@ const CreatePoolVisitScreen = ({ navigation }) => {
                 multiline={false}
                 autoCapitalize="sentences"
                 onFocus={() => {
-                  // Simple scroll to prevent jumping
-                  try {
-                    setTimeout(() => scrollToInput(index), 50);
-                  } catch (error) {
-                    console.log('Error in onFocus:', error);
-                  }
+                  // Let KeyboardAwareScrollView handle scrolling naturally
+                  // No manual intervention needed
                 }}
               />
               {tasks.length > 1 && (
