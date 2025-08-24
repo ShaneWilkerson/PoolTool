@@ -217,6 +217,9 @@ export const addPoolVisit = async (poolVisitData) => {
         : {}),
     };
 
+    console.log('Adding pool visit with data:', data);
+    console.log('Current user ID:', auth.currentUser.uid);
+
     const docRef = await addDoc(collection(db, 'poolVisits'), data);
 
     // If this is a recurring visit, generate future visits
@@ -582,13 +585,18 @@ export const addTodo = async (todoData) => {
   const snapshot = await getDocs(q);
   const nextOrder = snapshot.size + 1;
 
-  return await addDoc(collection(db, 'todos'), {
+  const todoDataToSave = {
     ...todoData,
     accountId: auth.currentUser.uid,
     status: 'pending',
     order: nextOrder,
     createdAt: new Date(),
-  });
+  };
+
+  console.log('Adding todo with data:', todoDataToSave);
+  console.log('Current user ID:', auth.currentUser.uid);
+
+  return await addDoc(collection(db, 'todos'), todoDataToSave);
 };
 
 export const updateTodoOrder = async (todoId, newOrder) => {

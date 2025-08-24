@@ -38,7 +38,15 @@ const ScheduleScreen = ({ navigation }) => {
       }
     };
     fetchCustomers();
-  }, []);
+    
+    // Add focus listener to refresh data when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('Schedule screen focused - refreshing data');
+      refreshSchedule();
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     // Listen for pool visits for the current week
@@ -47,6 +55,13 @@ const ScheduleScreen = ({ navigation }) => {
     start.setHours(0, 0, 0, 0);
     const end = new Date(weekDates[6]);
     end.setHours(23, 59, 59, 999);
+    
+    console.log('Schedule: Fetching pool visits for week:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      selectedWeek
+    });
+    
     const q = query(
       collection(db, 'poolVisits'),
       where('accountId', '==', auth.currentUser.uid),
@@ -55,6 +70,8 @@ const ScheduleScreen = ({ navigation }) => {
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allVisits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('Schedule: Pool visits fetched:', allVisits.length, 'visits');
+      console.log('Schedule: Sample visit data:', allVisits[0]);
       setPoolVisits(allVisits);
       setLoading(false);
       
@@ -71,14 +88,24 @@ const ScheduleScreen = ({ navigation }) => {
     start.setHours(0, 0, 0, 0);
     const end = new Date(weekDates[6]);
     end.setHours(23, 59, 59, 999);
+    
+    console.log('Schedule: Fetching todos for week:', {
+      start: start.toISOString(),
+      end: end.toISOString(),
+      selectedWeek
+    });
+    
     const q = query(
       collection(db, 'todos'),
       where('accountId', '==', auth.currentUser.uid),
-      where('date', '>=', start),
-      where('date', '<=', end)
+      where('dueDate', '>=', start),
+      where('dueDate', '<=', end)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const todosData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log('Schedule: Todos fetched:', todosData.length, 'todos');
+      console.log('Schedule: Sample todo data:', todosData[0]);
+      setTodos(todosData);
     });
     return unsubscribe;
   }, [selectedWeek]);
@@ -117,9 +144,10 @@ const ScheduleScreen = ({ navigation }) => {
     setSelectedWeek(selectedWeek + direction);
   };
 
-  const isToday = (dateString) => {
-    const today = new Date().toISOString().split('T')[0];
-    return dateString === today;
+  const isToday = (date) => {
+    const today = new Date();
+    const compareDate = new Date(date);
+    return today.toDateString() === compareDate.toDateString();
   };
 
   const getCustomerName = (visit) => {
@@ -147,10 +175,10 @@ const ScheduleScreen = ({ navigation }) => {
   const getTodosForDay = (date) => {
     return todos.filter(todo => {
       let todoDate;
-      if (todo.date && typeof todo.date.toDate === 'function') {
-        todoDate = todo.date.toDate();
+      if (todo.dueDate && typeof todo.dueDate.toDate === 'function') {
+        todoDate = todo.dueDate.toDate();
       } else {
-        todoDate = new Date(todo.date);
+        todoDate = new Date(todo.dueDate);
       }
       return todoDate.toDateString() === date.toDateString();
     });
@@ -207,14 +235,23 @@ const ScheduleScreen = ({ navigation }) => {
       const q = query(
         collection(db, 'todos'),
         where('accountId', '==', auth.currentUser.uid),
-        where('date', '>=', start),
-        where('date', '<=', end)
+        where('dueDate', '>=', start),
+        where('dueDate', '<=', end)
       );
       const snapshot = await getDocs(q);
-      setTodos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const todosData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTodos(todosData);
     } catch (error) {
       console.error('Error refreshing todos:', error);
     }
+  };
+
+  const refreshSchedule = () => {
+    console.log('Manual refresh triggered');
+    setLoading(true);
+    // Force a refresh by temporarily changing selectedWeek and then back
+    setSelectedWeek(selectedWeek + 0.1);
+    setTimeout(() => setSelectedWeek(Math.floor(selectedWeek)), 100);
   };
 
   if (loading) {
@@ -231,6 +268,12 @@ const ScheduleScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <Text style={styles.title}>Schedule</Text>
+
+        {/* Refresh Button */}
+        <TouchableOpacity style={styles.refreshButton} onPress={refreshSchedule}>
+          <Ionicons name="refresh" size={20} color="#00BFFF" />
+          <Text style={styles.refreshButtonText}>Refresh</Text>
+        </TouchableOpacity>
 
         {/* Week Navigation */}
         <View style={styles.weekNavigation}>
@@ -258,7 +301,7 @@ const ScheduleScreen = ({ navigation }) => {
           {currentWeekDates.map((date, index) => {
             const dayVisits = getVisitsForDate(date);
             const dayTodos = getTodosForDay(date);
-            const isTodayDate = isToday(date.toISOString().split('T')[0]);
+            const isTodayDate = isToday(date);
             
             return (
               <View key={index} style={[styles.dayCard, isTodayDate && styles.todayCard]}>
@@ -471,6 +514,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
     color: '#00BFFF',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e0f7fa',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    color: '#00BFFF',
+    marginLeft: 4,
   },
   weekNavigation: {
     flexDirection: 'row',
