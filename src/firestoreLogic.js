@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase';
-import { collection, addDoc, updateDoc, doc, getDocs, query, where, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDocs, query, where, onSnapshot, runTransaction, serverTimestamp, getDoc, writeBatch } from 'firebase/firestore';
 
 // ACCOUNTS
 export const addAccount = async (accountData) => {
@@ -277,6 +277,7 @@ const generateFutureRecurringVisits = async (recurringVisitData, originalVisitId
         recurrenceFrequency,
         recurrenceDayOfWeek,
         originalRecurringVisitId: originalVisitId, // Link to the original recurring visit
+        cancelled: false, // Ensure new visits are not cancelled
       });
     }
     
@@ -306,7 +307,8 @@ export const checkAndGenerateRecurringVisits = async () => {
       collection(db, 'poolVisits'),
       where('accountId', '==', auth.currentUser.uid),
       where('isRecurring', '==', true),
-      where('originalRecurringVisitId', '==', null) // Only original recurring visits
+      where('originalRecurringVisitId', '==', null), // Only original recurring visits
+      where('cancelled', '==', false) // Only non-cancelled recurring visits
     );
     
     const snapshot = await getDocs(q);
@@ -648,4 +650,124 @@ export const addSupplyStore = async (store) => {
     accountId: auth.currentUser.uid,
     createdAt: new Date(),
   });
+};
+
+// RECURRING VISITS MANAGEMENT
+export const getRecurringVisitsForCustomer = async (customerId) => {
+  try {
+    if (!db || !auth || !auth.currentUser) {
+      console.warn('Firebase not available or user not authenticated');
+      return [];
+    }
+
+    const q = query(
+      collection(db, 'poolVisits'),
+      where('accountId', '==', auth.currentUser.uid),
+      where('customerId', '==', customerId),
+      where('isRecurring', '==', true),
+      where('cancelled', '!=', true) // Only get active recurring visits
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error fetching recurring visits:', error);
+    return [];
+  }
+};
+
+export const cancelRecurringVisit = async (visitId) => {
+  try {
+    if (!db || !auth || !auth.currentUser) {
+      throw new Error('Firebase not available or user not authenticated');
+    }
+
+    // Mark the recurring visit as cancelled
+    await updateDoc(doc(db, 'poolVisits', visitId), {
+      cancelled: true,
+      cancelledAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // Also mark any future generated visits as cancelled
+    const visitDoc = await getDoc(doc(db, 'poolVisits', visitId));
+    if (visitDoc.exists()) {
+      const visitData = visitDoc.data();
+      const q = query(
+        collection(db, 'poolVisits'),
+        where('accountId', '==', auth.currentUser.uid),
+        where('customerId', '==', visitData.customerId),
+        where('isRecurring', '==', true),
+        where('scheduledDate', '>', new Date()),
+        where('cancelled', '!=', true)
+      );
+      
+      const futureVisits = await getDocs(q);
+      const batch = writeBatch(db);
+      futureVisits.docs.forEach(doc => {
+        batch.update(doc.ref, {
+          cancelled: true,
+          cancelledAt: new Date(),
+          updatedAt: new Date()
+        });
+      });
+      await batch.commit();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error cancelling recurring visit:', error);
+    throw error;
+  }
+};
+
+export const updateRecurringVisit = async (visitId, updateData) => {
+  try {
+    if (!db || !auth || !auth.currentUser) {
+      throw new Error('Firebase not available or user not authenticated');
+    }
+
+    // Update the main recurring visit
+    await updateDoc(doc(db, 'poolVisits', visitId), {
+      ...updateData,
+      updatedAt: new Date()
+    });
+
+    // If frequency or day of week changed, regenerate future visits
+    if (updateData.recurrenceFrequency || updateData.recurrenceDayOfWeek) {
+      const visitDoc = await getDoc(doc(db, 'poolVisits', visitId));
+      if (visitDoc.exists()) {
+        const visitData = visitDoc.data();
+        
+        // Cancel existing future visits
+        const q = query(
+          collection(db, 'poolVisits'),
+          where('accountId', '==', auth.currentUser.uid),
+          where('customerId', '==', visitData.customerId),
+          where('isRecurring', '==', true),
+          where('scheduledDate', '>', new Date()),
+          where('cancelled', '!=', true)
+        );
+        
+        const futureVisits = await getDocs(q);
+        const batch = writeBatch(db);
+        futureVisits.docs.forEach(doc => {
+          batch.update(doc.ref, {
+            cancelled: true,
+            cancelledAt: new Date(),
+            updatedAt: new Date()
+          });
+        });
+        await batch.commit();
+
+        // Generate new future visits with updated settings
+        await generateFutureRecurringVisits(visitData, visitId);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error updating recurring visit:', error);
+    throw error;
+  }
 }; 

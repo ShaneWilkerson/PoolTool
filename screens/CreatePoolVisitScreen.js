@@ -15,7 +15,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getCustomersForAccount, addPoolVisit } from '../src/firestoreLogic';
+import { getCustomersForAccount, addPoolVisit, updateRecurringVisit } from '../src/firestoreLogic';
 import { auth } from '../firebase';
 import SelectedCustomerBox from '../src/SelectedCustomerBox';
 import DateSelector from '../src/DateSelector';
@@ -32,7 +32,9 @@ const getWeekDays = (weekStart) => {
   return days;
 };
 
-const CreatePoolVisitScreen = ({ navigation }) => {
+const CreatePoolVisitScreen = ({ navigation, route }) => {
+  const { customerId, isRecurringParam, editMode, existingVisit } = route.params || {};
+  
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -93,6 +95,30 @@ const CreatePoolVisitScreen = ({ navigation }) => {
     const unsubscribe = navigation.addListener('focus', fetchCustomers);
     return unsubscribe;
   }, [navigation]);
+
+  // Handle edit mode and pre-populate form
+  useEffect(() => {
+    if (editMode && existingVisit) {
+      // Pre-populate form with existing visit data
+      setSelectedCustomer({
+        id: existingVisit.customerId,
+        name: existingVisit.customerName,
+        email: existingVisit.customerEmail
+      });
+      setSelectedDay(new Date(existingVisit.scheduledDate));
+      setTasks(existingVisit.tasks || ['']);
+      setIsRecurring(existingVisit.isRecurring);
+      setRecurrenceFrequency(existingVisit.recurrenceFrequency || 'weekly');
+      setRecurrenceDayOfWeek(existingVisit.recurrenceDayOfWeek);
+    } else if (customerId && isRecurringParam) {
+      // Pre-select customer and set recurring mode
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        setSelectedCustomer(customer);
+        setIsRecurring(true);
+      }
+    }
+  }, [editMode, existingVisit, customerId, isRecurringParam, customers]);
 
   // Handle recurring section changes smoothly
   useEffect(() => {
@@ -280,31 +306,49 @@ const CreatePoolVisitScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(selectedDay);
-      selected.setHours(0, 0, 0, 0);
-      const isPast = selected < today;
+      if (editMode && existingVisit) {
+        // Update existing recurring visit
+        await updateRecurringVisit(existingVisit.id, {
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          customerEmail: selectedCustomer.email,
+          scheduledDate: selectedDay,
+          tasks: validTasks,
+          isRecurring: isRecurring,
+          recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+          recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
+        });
+        
+        Alert.alert('Success', 'Recurring visit updated successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        // Create new pool visit
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selected = new Date(selectedDay);
+        selected.setHours(0, 0, 0, 0);
+        const isPast = selected < today;
 
-      // Create as a regular pool visit with recurring properties
-      await addPoolVisit({
-        customerId: selectedCustomer.id,
-        customerName: selectedCustomer.name,
-        customerEmail: selectedCustomer.email,
-        scheduledDate: selectedDay,
-        tasks: validTasks,
-        isRecurring: isRecurring,
-        recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
-        recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
-        ...(isPast ? { completed: true, completedAt: selected } : {}),
-      });
-      
-      Alert.alert('Success', 'Pool visit created successfully', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+        await addPoolVisit({
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          customerEmail: selectedCustomer.email,
+          scheduledDate: selectedDay,
+          tasks: validTasks,
+          isRecurring: isRecurring,
+          recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
+          recurrenceDayOfWeek: isRecurring ? recurrenceDayOfWeek : null,
+          ...(isPast ? { completed: true, completedAt: selected } : {}),
+        });
+        
+        Alert.alert('Success', 'Pool visit created successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      }
     } catch (error) {
-      console.error('Error creating visit:', error);
-      Alert.alert('Error', 'Failed to create visit');
+      console.error('Error saving visit:', error);
+      Alert.alert('Error', editMode ? 'Failed to update visit' : 'Failed to create visit');
     } finally {
       setLoading(false);
     }
@@ -344,7 +388,9 @@ const CreatePoolVisitScreen = ({ navigation }) => {
         keyboardDismissMode="interactive"
       >
         <View style={styles.contentWrapper}>
-          <Text style={styles.title}>Create Pool Visit</Text>
+          <Text style={styles.title}>
+            {editMode ? 'Edit Recurring Visit' : 'Create Pool Visit'}
+          </Text>
 
         {/* Customer Search */}
         <View style={styles.section}>
@@ -528,7 +574,7 @@ const CreatePoolVisitScreen = ({ navigation }) => {
           disabled={loading}
         >
           <Text style={styles.submitButtonText}>
-            {loading ? 'Creating...' : (isRecurring ? 'Create Recurring Visit' : 'Create Pool Visit')}
+            {loading ? 'Saving...' : (editMode ? 'Update Recurring Visit' : (isRecurring ? 'Create Recurring Visit' : 'Create Pool Visit'))}
           </Text>
         </TouchableOpacity>
         </View>

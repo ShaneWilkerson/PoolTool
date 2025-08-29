@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { softDeleteCustomer } from '../src/firestoreLogic';
+import { softDeleteCustomer, getRecurringVisitsForCustomer, cancelRecurringVisit, updateRecurringVisit } from '../src/firestoreLogic';
 import BillingStatus from '../src/BillingStatus';
 
 const CustomerDetailScreen = ({ navigation, route }) => {
@@ -22,6 +22,8 @@ const CustomerDetailScreen = ({ navigation, route }) => {
   const [editing, setEditing] = useState(false);
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [recurringVisits, setRecurringVisits] = useState([]);
+  const [loadingRecurring, setLoadingRecurring] = useState(false);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -58,8 +60,55 @@ const CustomerDetailScreen = ({ navigation, route }) => {
     if (customer) {
       setEditEmail(customer.email || '');
       setEditPhone(customer.phone || '');
+      fetchRecurringVisits();
     }
   }, [customer]);
+
+  const fetchRecurringVisits = async () => {
+    if (!customer) return;
+    
+    setLoadingRecurring(true);
+    try {
+      const visits = await getRecurringVisitsForCustomer(customer.id);
+      setRecurringVisits(visits);
+    } catch (error) {
+      console.error('Error fetching recurring visits:', error);
+    } finally {
+      setLoadingRecurring(false);
+    }
+  };
+
+  const handleEditRecurringVisit = (visit) => {
+    navigation.navigate('CreatePoolVisit', { 
+      customerId: customer.id, 
+      isRecurringParam: true, 
+      editMode: true, 
+      existingVisit: visit 
+    });
+  };
+
+  const handleCancelRecurringVisit = async (visit) => {
+    Alert.alert(
+      'Cancel Recurring Visit',
+      'Are you sure you want to cancel this recurring visit? This will stop future visits from being generated.',
+      [
+        { text: 'No, Keep It', style: 'cancel' },
+        {
+          text: 'Yes, Cancel It',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelRecurringVisit(visit.id);
+              Alert.alert('Success', 'Recurring visit cancelled');
+              fetchRecurringVisits(); // Refresh the list
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel recurring visit');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const handleDeleteCustomer = async () => {
     Alert.alert(
@@ -199,6 +248,71 @@ const CustomerDetailScreen = ({ navigation, route }) => {
                     <View key={index} style={styles.poolDetailItem}>
                       <Text style={styles.bulletPoint}>•</Text>
                       <Text style={styles.poolDetailText}>{detail}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Recurring Visits */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recurring Visits</Text>
+          <View style={styles.infoCard}>
+            {loadingRecurring ? (
+              <Text style={styles.loadingText}>Loading recurring visits...</Text>
+            ) : recurringVisits.length === 0 ? (
+              <TouchableOpacity
+                style={styles.addRecurringButton}
+                onPress={() => navigation.navigate('CreatePoolVisit', { customerId: customer.id, isRecurringParam: true })}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="#00BFFF" />
+                <Text style={styles.addRecurringText}>Add Recurring Visit</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                <TouchableOpacity 
+                  style={styles.addMoreButton}
+                  onPress={() => navigation.navigate('CreatePoolVisit', { customerId: customer.id, isRecurringParam: true })}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color="#00BFFF" />
+                  <Text style={styles.addMoreText}>Add More</Text>
+                </TouchableOpacity>
+                <View style={styles.recurringVisitsList}>
+                  {recurringVisits.map((visit, index) => (
+                    <View key={visit.id} style={styles.recurringVisitItem}>
+                      <View style={styles.visitInfo}>
+                        <View style={styles.visitHeader}>
+                          <Ionicons name="repeat" size={18} color="#00BFFF" style={{ marginRight: 8 }} />
+                          <Text style={styles.visitFrequency}>
+                            Every {visit.recurrenceFrequency === 'weekly' ? 'week' : 
+                                   visit.recurrenceFrequency === 'biweekly' ? '2 weeks' : 
+                                   visit.recurrenceFrequency === 'monthly' ? 'month' : 'week'} 
+                            on {visit.recurrenceDayOfWeek}
+                          </Text>
+                        </View>
+                        <Text style={styles.visitTasks}>
+                          {visit.tasks && visit.tasks.length > 0 ? 
+                            `${visit.tasks.length} task${visit.tasks.length !== 1 ? 's' : ''}` : 
+                            'No tasks specified'
+                          }
+                        </Text>
+                      </View>
+                      <View style={styles.visitActions}>
+                        <TouchableOpacity
+                          style={styles.editVisitButton}
+                          onPress={() => handleEditRecurringVisit(visit)}
+                        >
+                          <Ionicons name="create-outline" size={18} color="#00BFFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.cancelVisitButton}
+                          onPress={() => handleCancelRecurringVisit(visit)}
+                        >
+                          <Ionicons name="close-circle-outline" size={18} color="#FF3B30" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -455,6 +569,92 @@ const styles = StyleSheet.create({
     color: '#00BFFF',
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  recurringVisitsList: {
+    marginTop: 12,
+  },
+  recurringVisitItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  visitInfo: {
+    flex: 1,
+  },
+  visitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  visitFrequency: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  visitTasks: {
+    fontSize: 14,
+    color: '#666',
+  },
+  visitActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editVisitButton: {
+    marginLeft: 12,
+    padding: 8,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+  },
+  cancelVisitButton: {
+    marginLeft: 12,
+    padding: 8,
+    backgroundColor: '#ffebee',
+    borderRadius: 8,
+  },
+  addRecurringButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  addRecurringText: {
+    fontSize: 16,
+    color: '#00BFFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  addMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    marginBottom: 16,
+    alignSelf: 'flex-end',
+  },
+  addMoreText: {
+    fontSize: 14,
+    color: '#00BFFF',
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });
 
